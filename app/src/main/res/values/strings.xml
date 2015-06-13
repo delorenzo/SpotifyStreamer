@@ -1,5 +1,10 @@
 <resources>
     <string name="app_name">Spotify Streamer</string>
+    <string name="top_ten_tracks">Top 10 Tracks</string>
 
     <string name="action_settings">Settings</string>
+
+    <!-- placeholder strings -->
+    <string name="artist_placeholder">Artist</string>
+    <string name="track_placeholder">Track</string>
 </resources>

@@ -1,5 +1,6 @@
 package com.julie.spotifystreamer;
 
+import android.app.Activity;
 import android.support.v7.app.ActionBarActivity;
 import android.os.Bundle;
 import android.view.Menu;
@@ -9,7 +10,7 @@ import kaaes.spotify.webapi.android.SpotifyApi;
 import kaaes.spotify.webapi.android.SpotifyService;
 
 
-public class MainActivity extends ActionBarActivity {
+public class MainActivity extends Activity implements ArtistFragment.OnFragmentInteractionListener {
     SpotifyService spotify;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -44,5 +45,8 @@ public class MainActivity extends ActionBarActivity {
     private void searchForArtist(String artist)
     {
         spotify.getArtist(artist);
+    }
+
+    public void onFragmentInteraction(String spotifyId) {
     }
 }

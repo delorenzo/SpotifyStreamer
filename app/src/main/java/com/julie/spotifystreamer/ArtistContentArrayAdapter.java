@@ -33,7 +33,7 @@ public class ArtistContentArrayAdapter extends ArrayAdapter {
             convertView = inflater.inflate(R.layout.list_item_artist, null);
         }
 
-        ImageView thumbnailImage = (ImageView) convertView.findViewById(R.id.thumbnail_image);
+        ImageView thumbnailImage = (ImageView) convertView.findViewById(R.id.artist_thumbnail_image);
         TextView artistName = (TextView) convertView.findViewById(R.id.artist_name);
         ArtistContent artist = mArtistContentList.get(position);
 

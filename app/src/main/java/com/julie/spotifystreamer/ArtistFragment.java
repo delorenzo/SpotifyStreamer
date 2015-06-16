@@ -1,8 +1,10 @@
 package com.julie.spotifystreamer;
 
 import android.app.Activity;
+import android.os.AsyncTask;
 import android.os.Bundle;
 import android.app.Fragment;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -13,6 +15,15 @@ import android.widget.ListAdapter;
 import android.widget.TextView;
 
 import java.util.ArrayList;
+
+import kaaes.spotify.webapi.android.SpotifyApi;
+import kaaes.spotify.webapi.android.SpotifyService;
+import kaaes.spotify.webapi.android.models.Artist;
+import kaaes.spotify.webapi.android.models.ArtistsPager;
+import kaaes.spotify.webapi.android.models.Pager;
+import retrofit.Callback;
+import retrofit.RetrofitError;
+import retrofit.client.Response;
 
 /**
  * A fragment representing a list of Items.
@@ -28,6 +39,10 @@ public class ArtistFragment extends Fragment implements AbsListView.OnItemClickL
     private OnFragmentInteractionListener mListener;
     private AbsListView mListView;
     private ArtistContentArrayAdapter mAdapter;
+    private SpotifyService mSpotifyService;
+
+    private String LOG_TAG = ArtistFragment.class.getSimpleName();
+
 
     /**
      * Mandatory empty constructor for the fragment manager to instantiate the
@@ -41,6 +56,8 @@ public class ArtistFragment extends Fragment implements AbsListView.OnItemClickL
         super.onCreate(savedInstanceState);
         mAdapter = new ArtistContentArrayAdapter(getActivity(),
                 android.R.layout.simple_list_item_1, new ArrayList<ArtistContent>());
+        SpotifyApi api = new SpotifyApi();
+        mSpotifyService = api.getService();
     }
 
     @Override
@@ -112,4 +129,26 @@ public class ArtistFragment extends Fragment implements AbsListView.OnItemClickL
         public void onFragmentInteraction(String id);
     }
 
+    private class RetrieveArtistTask extends AsyncTask<String, Void, Pager<Artist>> {
+
+        @Override
+        protected Pager<Artist> doInBackground(String... params) {
+            if (params.length < 1) {
+                Log.v(LOG_TAG, "doInBackground called with no params");
+                return null;
+            }
+            String searchItem = params[0];
+
+            ArtistsPager mArtistsPager = mSpotifyService.searchArtists(searchItem);
+            return mArtistsPager.artists;
+        }
+
+        @Override
+        protected void onPostExecute(Pager<Artist> result) {
+            if (result != null) {
+                mAdapter.clear();
+
+            }
+        }
+    }
 }

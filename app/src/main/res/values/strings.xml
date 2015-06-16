@@ -7,4 +7,5 @@
     <!-- placeholder strings -->
     <string name="artist_placeholder">Artist</string>
     <string name="track_placeholder">Track</string>
+    <string name="album_placeholder">Album</string>
 </resources>

@@ -10,20 +10,16 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.AbsListView;
 import android.widget.AdapterView;
-import android.widget.ArrayAdapter;
-import android.widget.ListAdapter;
 import android.widget.TextView;
 
 import java.util.ArrayList;
+import java.util.List;
 
 import kaaes.spotify.webapi.android.SpotifyApi;
 import kaaes.spotify.webapi.android.SpotifyService;
 import kaaes.spotify.webapi.android.models.Artist;
 import kaaes.spotify.webapi.android.models.ArtistsPager;
 import kaaes.spotify.webapi.android.models.Pager;
-import retrofit.Callback;
-import retrofit.RetrofitError;
-import retrofit.client.Response;
 
 /**
  * A fragment representing a list of Items.
@@ -129,25 +125,26 @@ public class ArtistFragment extends Fragment implements AbsListView.OnItemClickL
         public void onFragmentInteraction(String id);
     }
 
-    private class RetrieveArtistTask extends AsyncTask<String, Void, Pager<Artist>> {
+    private class RetrieveArtistTask extends AsyncTask<String, Void, List<Artist>> {
 
         @Override
-        protected Pager<Artist> doInBackground(String... params) {
+        protected List<Artist> doInBackground(String... params) {
             if (params.length < 1) {
                 Log.v(LOG_TAG, "doInBackground called with no params");
                 return null;
             }
             String searchItem = params[0];
-
             ArtistsPager mArtistsPager = mSpotifyService.searchArtists(searchItem);
-            return mArtistsPager.artists;
+            return mArtistsPager.artists.items;
         }
 
         @Override
-        protected void onPostExecute(Pager<Artist> result) {
+        protected void onPostExecute(List<Artist> result) {
             if (result != null) {
                 mAdapter.clear();
-
+                for (Artist a : result) {
+                    mAdapter.addAll(a);
+                }
             }
         }
     }

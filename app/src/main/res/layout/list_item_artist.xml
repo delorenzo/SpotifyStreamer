@@ -4,16 +4,10 @@
     android:layout_height="match_parent"
     android:id="@+id/list_item_artist_layout"
     android:weightSum="1">
-    <EditText
-        android:id="@+id/search_bar"
-        android:layout_width="fill_parent"
-        android:layout_height="wrap_content" />
     <ImageView
         android:id="@+id/artist_thumbnail_image"
-        android:layout_below="@id/search_bar"
         style="@style/thumbnail_image"/>
     <TextView
-        android:layout_below="@id/search_bar"
         android:layout_width="wrap_content"
         android:layout_height="?android:attr/listPreferredItemHeight"
         android:hint="@string/artist_placeholder"

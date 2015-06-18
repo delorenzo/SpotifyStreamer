@@ -3,7 +3,7 @@ package com.julie.spotifystreamer;
 import android.app.Activity;
 import android.os.AsyncTask;
 import android.os.Bundle;
-import android.app.Fragment;
+import android.support.v4.app.Fragment;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -27,12 +27,12 @@ import kaaes.spotify.webapi.android.models.Pager;
  * Large screen devices (such as tablets) are supported by replacing the ListView
  * with a GridView.
  * <p/>
- * Activities containing this fragment MUST implement the {@link OnFragmentInteractionListener}
+ * Activities containing this fragment MUST implement the {@link com.julie.spotifystreamer.ArtistFragment.OnArtistSelectedListener}
  * interface.
  */
 public class ArtistFragment extends Fragment implements AbsListView.OnItemClickListener {
 
-    private OnFragmentInteractionListener mListener;
+    private OnArtistSelectedListener mListener;
     private AbsListView mListView;
     private ArtistContentArrayAdapter mAdapter;
     private SpotifyService mSpotifyService;
@@ -50,10 +50,13 @@ public class ArtistFragment extends Fragment implements AbsListView.OnItemClickL
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        mAdapter = new ArtistContentArrayAdapter(getActivity(),
-                android.R.layout.simple_list_item_1, new ArrayList<ArtistContent>());
-        SpotifyApi api = new SpotifyApi();
-        mSpotifyService = api.getService();
+        setHasOptionsMenu(true);
+    }
+
+    @Override
+    public void onStart() {
+        super.onStart();
+        new RetrieveArtistTask().execute("Coldplay");
     }
 
     @Override
@@ -63,10 +66,15 @@ public class ArtistFragment extends Fragment implements AbsListView.OnItemClickL
 
         // Set the adapter
         mListView = (AbsListView) rootView.findViewById(android.R.id.list);
+        mAdapter = new ArtistContentArrayAdapter(getActivity(),
+                android.R.layout.simple_list_item_1, new ArrayList<Artist>());
         mListView.setAdapter(mAdapter);
 
         // Set OnItemClickListener so we can be notified on item clicks
         mListView.setOnItemClickListener(this);
+
+        SpotifyApi api = new SpotifyApi();
+        mSpotifyService = api.getService();
 
         return rootView;
     }
@@ -75,10 +83,10 @@ public class ArtistFragment extends Fragment implements AbsListView.OnItemClickL
     public void onAttach(Activity activity) {
         super.onAttach(activity);
         try {
-            mListener = (OnFragmentInteractionListener) activity;
+            mListener = (OnArtistSelectedListener) activity;
         } catch (ClassCastException e) {
             throw new ClassCastException(activity.toString()
-                    + " must implement OnFragmentInteractionListener");
+                    + " must implement OnArtistSelectedListener");
         }
     }
 
@@ -94,6 +102,8 @@ public class ArtistFragment extends Fragment implements AbsListView.OnItemClickL
             // Notify the active callbacks interface (the activity, if the
             // fragment is attached to one) that an item has been selected.
             //mListener.onFragmentInteraction(ArtistContent.getSpotifyId);
+            Artist artist = (Artist)mAdapter.getItem(position);
+            mListener.onArtistSelected(artist.id);
         }
     }
 
@@ -120,9 +130,8 @@ public class ArtistFragment extends Fragment implements AbsListView.OnItemClickL
      * "http://developer.android.com/training/basics/fragments/communicating.html"
      * >Communicating with Other Fragments</a> for more information.
      */
-    public interface OnFragmentInteractionListener {
-        // TODO: Update argument type and name
-        public void onFragmentInteraction(String id);
+    public interface OnArtistSelectedListener {
+        public void onArtistSelected(String spotifyId);
     }
 
     private class RetrieveArtistTask extends AsyncTask<String, Void, List<Artist>> {

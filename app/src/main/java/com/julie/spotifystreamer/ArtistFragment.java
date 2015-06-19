@@ -1,6 +1,8 @@
 package com.julie.spotifystreamer;
 
 import android.app.Activity;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
@@ -12,6 +14,8 @@ import android.widget.AbsListView;
 import android.widget.AdapterView;
 import android.widget.TextView;
 
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -50,13 +54,12 @@ public class ArtistFragment extends Fragment implements AbsListView.OnItemClickL
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setHasOptionsMenu(true);
     }
 
     @Override
     public void onStart() {
         super.onStart();
-        //new RetrieveArtistTask().execute("Coldplay");
+        new RetrieveArtistTask().execute("Coldplay");
     }
 
     @Override
@@ -65,14 +68,7 @@ public class ArtistFragment extends Fragment implements AbsListView.OnItemClickL
         View rootView = inflater.inflate(R.layout.fragment_artist, container, false);
 
         // Set the adapter
-        ArrayList<Artist> artistList = new ArrayList<Artist>();
-        Artist a = new Artist();
-        a.name = "Fake artist";
-        a.id = "123";
-        Image i = new Image();
-        i.url = "http://vignette1.wikia.nocookie.net/steven-universe/images/0/02/Catbug_by_sircinnamon-d5riz9k-1-.png/revision/latest?cb=20131103194057";
-        a.images.add(i);
-        artistList.add(a);
+        ArrayList<ArtistContent> artistList = new ArrayList<>();
 
         mAdapter = new ArtistArrayAdapter(getActivity(),
                 android.R.layout.simple_list_item_1, artistList);
@@ -86,6 +82,7 @@ public class ArtistFragment extends Fragment implements AbsListView.OnItemClickL
         mSpotifyService = api.getService();
 
         return rootView;
+
     }
 
     @Override
@@ -111,8 +108,8 @@ public class ArtistFragment extends Fragment implements AbsListView.OnItemClickL
             // Notify the active callbacks interface (the activity, if the
             // fragment is attached to one) that an item has been selected.
             //mListener.onFragmentInteraction(ArtistContent.getSpotifyId);
-            Artist artist = (Artist)mAdapter.getItem(position);
-            mListener.onArtistSelected(artist.id);
+            ArtistContent artist = mAdapter.getItem(position);
+            mListener.onArtistSelected(artist.getSpotifyId());
         }
     }
 
@@ -140,29 +137,45 @@ public class ArtistFragment extends Fragment implements AbsListView.OnItemClickL
      * >Communicating with Other Fragments</a> for more information.
      */
     public interface OnArtistSelectedListener {
-        public void onArtistSelected(String spotifyId);
+        void onArtistSelected(String spotifyId);
     }
 
-    private class RetrieveArtistTask extends AsyncTask<String, Void, List<Artist>> {
+    private class RetrieveArtistTask extends AsyncTask<String, Void, ArrayList<ArtistContent>> {
 
         @Override
-        protected List<Artist> doInBackground(String... params) {
+        protected ArrayList<ArtistContent> doInBackground(String... params) {
             if (params.length < 1) {
                 Log.v(LOG_TAG, "doInBackground called with no params");
                 return null;
             }
             String searchItem = params[0];
             ArtistsPager mArtistsPager = mSpotifyService.searchArtists(searchItem);
-            return mArtistsPager.artists.items;
+            ArrayList<ArtistContent> mArtistList = new ArrayList<>();
+            List<Artist> resultList = mArtistsPager.artists.items;
+            for (Artist a : resultList) {
+                Bitmap thumbnailIcon = null;
+                if (a.images.isEmpty()) {
+                    //TODO:  set some placeholder image
+                }
+                else {
+                    String url = a.images.get(0).url;
+                    try {
+                        InputStream in = new java.net.URL(url).openStream();
+                        thumbnailIcon = BitmapFactory.decodeStream(in);
+                    } catch (IOException e) {
+                        Log.e(LOG_TAG, "Failed to import bitmap from " + url);
+                    }
+                }
+                mArtistList.add(new ArtistContent(a.name, a.id, thumbnailIcon));
+            }
+            return mArtistList;
         }
 
         @Override
-        protected void onPostExecute(List<Artist> result) {
+        protected void onPostExecute(ArrayList<ArtistContent> result) {
             if (result != null) {
                 mAdapter.clear();
-                for (Artist a : result) {
-                    mAdapter.add(a);
-                }
+                mAdapter.addAll(result);
             }
         }
     }

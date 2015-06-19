@@ -1,5 +1,6 @@
 package com.julie.spotifystreamer;
 
+import android.graphics.Bitmap;
 import android.net.Uri;
 
 /**
@@ -7,28 +8,28 @@ import android.net.Uri;
  */
 public class ArtistContent {
     private String artistName;
-    private int spotifyId;
-    private Uri thumbnailUri;
+    private String spotifyId;
+    private Bitmap thumbnailBitmap;
 
-    public ArtistContent(String name, int id, Uri thumbnail)
+    public ArtistContent(String name, String id, Bitmap thumbnail)
     {
         artistName = name;
         spotifyId = id;
-        thumbnailUri = thumbnail;
+        thumbnailBitmap = thumbnail;
     }
 
-    public int getSpotifyId()
+    public String getSpotifyId()
     {
         return spotifyId;
     }
 
-    public String getArtistName()
+    public String getName()
     {
         return artistName;
     }
 
-    public Uri getThumbnailUri()
+    public Bitmap getThumbnailBitmap()
     {
-        return thumbnailUri;
+        return thumbnailBitmap;
     }
 }

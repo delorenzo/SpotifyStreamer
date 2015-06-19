@@ -20,7 +20,7 @@ import kaaes.spotify.webapi.android.models.Artist;
  * Custom ArrayAdapter that returns the view for the artist list item, including the thumbnail
  * image and the artist name.
  */
-public class ArtistArrayAdapter extends ArrayAdapter<Artist> {
+public class ArtistArrayAdapter extends ArrayAdapter<ArtistContent> {
 
     //the ViewHolder pattern caches the view lookup to improve performance
     private static class ViewHolder {
@@ -28,13 +28,13 @@ public class ArtistArrayAdapter extends ArrayAdapter<Artist> {
         TextView artistName;
     }
 
-    ArtistArrayAdapter(Context context, int resource, ArrayList<Artist> objects) {
+    ArtistArrayAdapter(Context context, int resource, ArrayList<ArtistContent> objects) {
         super(context, resource, objects);
     }
 
     @Override
     public View getView(int position, View convertView, ViewGroup parent) {
-        Artist artist = (Artist)getItem(position);
+        ArtistContent artist = getItem(position);
         ViewHolder viewHolder;
 
         //If a view does not exist, inflate it and set up the ViewHolder.
@@ -45,16 +45,15 @@ public class ArtistArrayAdapter extends ArrayAdapter<Artist> {
             convertView = mInflater.inflate(R.layout.list_item_artist, parent, false);
             viewHolder.thumbnailImage = (ImageView) convertView.findViewById(R.id.artist_thumbnail_image);
             viewHolder.artistName = (TextView) convertView.findViewById(R.id.artist_name);
+            convertView.setTag(viewHolder);
         }
         else {
             viewHolder = (ViewHolder) convertView.getTag();
         }
 
         //Populate the data into the view
-        String urlString = artist.images.get(0).url;
-        Uri uri = Uri.parse(urlString);
-        viewHolder.thumbnailImage.setImageURI(uri);
-        viewHolder.artistName.setText(artist.toString());
+        viewHolder.thumbnailImage.setImageBitmap(artist.getThumbnailBitmap());
+        viewHolder.artistName.setText(artist.getName());
 
         return convertView;
     }

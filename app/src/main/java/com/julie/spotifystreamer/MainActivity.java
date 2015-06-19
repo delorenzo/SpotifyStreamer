@@ -13,7 +13,7 @@ public class MainActivity extends FragmentActivity implements ArtistFragment.OnA
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        if (findViewById(R.id.list_item_artist_layout) != null) {
+        if (findViewById(R.id.main_layout) != null) {
             if (savedInstanceState != null) {
                 return;
             }

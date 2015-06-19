@@ -19,7 +19,7 @@ import kaaes.spotify.webapi.android.SpotifyApi;
 import kaaes.spotify.webapi.android.SpotifyService;
 import kaaes.spotify.webapi.android.models.Artist;
 import kaaes.spotify.webapi.android.models.ArtistsPager;
-import kaaes.spotify.webapi.android.models.Pager;
+import kaaes.spotify.webapi.android.models.Image;
 
 /**
  * A fragment representing a list of Items.
@@ -34,7 +34,7 @@ public class ArtistFragment extends Fragment implements AbsListView.OnItemClickL
 
     private OnArtistSelectedListener mListener;
     private AbsListView mListView;
-    private ArtistContentArrayAdapter mAdapter;
+    private ArtistArrayAdapter mAdapter;
     private SpotifyService mSpotifyService;
 
     private String LOG_TAG = ArtistFragment.class.getSimpleName();
@@ -56,7 +56,7 @@ public class ArtistFragment extends Fragment implements AbsListView.OnItemClickL
     @Override
     public void onStart() {
         super.onStart();
-        new RetrieveArtistTask().execute("Coldplay");
+        //new RetrieveArtistTask().execute("Coldplay");
     }
 
     @Override
@@ -65,9 +65,18 @@ public class ArtistFragment extends Fragment implements AbsListView.OnItemClickL
         View rootView = inflater.inflate(R.layout.fragment_artist, container, false);
 
         // Set the adapter
+        ArrayList<Artist> artistList = new ArrayList<Artist>();
+        Artist a = new Artist();
+        a.name = "Fake artist";
+        a.id = "123";
+        Image i = new Image();
+        i.url = "http://vignette1.wikia.nocookie.net/steven-universe/images/0/02/Catbug_by_sircinnamon-d5riz9k-1-.png/revision/latest?cb=20131103194057";
+        a.images.add(i);
+        artistList.add(a);
+
+        mAdapter = new ArtistArrayAdapter(getActivity(),
+                android.R.layout.simple_list_item_1, artistList);
         mListView = (AbsListView) rootView.findViewById(android.R.id.list);
-        mAdapter = new ArtistContentArrayAdapter(getActivity(),
-                android.R.layout.simple_list_item_1, new ArrayList<Artist>());
         mListView.setAdapter(mAdapter);
 
         // Set OnItemClickListener so we can be notified on item clicks
@@ -152,7 +161,7 @@ public class ArtistFragment extends Fragment implements AbsListView.OnItemClickL
             if (result != null) {
                 mAdapter.clear();
                 for (Artist a : result) {
-                    mAdapter.addAll(a);
+                    mAdapter.add(a);
                 }
             }
         }

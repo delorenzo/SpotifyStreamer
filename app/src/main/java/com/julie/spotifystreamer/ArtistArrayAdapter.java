@@ -17,8 +17,7 @@ import java.util.List;
 import kaaes.spotify.webapi.android.models.Artist;
 
 /**
- * Custom ArrayAdapter that returns the view for the artist list item, including the thumbnail
- * image and the artist name.
+ * Custom ArrayAdapter that returns the view for the artist list item.
  */
 public class ArtistArrayAdapter extends ArrayAdapter<ArtistContent> {
 
@@ -28,7 +27,7 @@ public class ArtistArrayAdapter extends ArrayAdapter<ArtistContent> {
         TextView artistName;
     }
 
-    ArtistArrayAdapter(Context context, int resource, ArrayList<ArtistContent> objects) {
+    public ArtistArrayAdapter(Context context, int resource, ArrayList<ArtistContent> objects) {
         super(context, resource, objects);
     }
 

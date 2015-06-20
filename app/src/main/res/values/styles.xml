@@ -8,7 +8,7 @@
     <style name="thumbnail_image">
         <item name="android:paddingLeft">?android:attr/listPreferredItemPaddingLeft</item>
         <item name="android:paddingRight">?android:attr/listPreferredItemPaddingRight</item>
-        <item name="android:layout_width">125dip</item>
-        <item name="android:layout_height">125dip</item>
+        <item name="android:layout_width">100dip</item>
+        <item name="android:layout_height">100dip</item>
     </style>
 </resources>

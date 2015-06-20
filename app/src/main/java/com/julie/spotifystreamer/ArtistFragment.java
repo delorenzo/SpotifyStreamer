@@ -41,7 +41,7 @@ public class ArtistFragment extends Fragment implements AbsListView.OnItemClickL
     private ArtistArrayAdapter mAdapter;
     private SpotifyService mSpotifyService;
 
-    private String LOG_TAG = ArtistFragment.class.getSimpleName();
+    private static final String LOG_TAG = ArtistFragment.class.getSimpleName();
 
 
     /**
@@ -60,6 +60,8 @@ public class ArtistFragment extends Fragment implements AbsListView.OnItemClickL
     public void onStart() {
         super.onStart();
         new RetrieveArtistTask().execute("Coldplay");
+        mAdapter = new ArtistArrayAdapter(getActivity(),
+                android.R.layout.simple_list_item_1, new ArrayList<ArtistContent>());
     }
 
     @Override
@@ -68,10 +70,6 @@ public class ArtistFragment extends Fragment implements AbsListView.OnItemClickL
         View rootView = inflater.inflate(R.layout.fragment_artist, container, false);
 
         // Set the adapter
-        ArrayList<ArtistContent> artistList = new ArrayList<>();
-
-        mAdapter = new ArtistArrayAdapter(getActivity(),
-                android.R.layout.simple_list_item_1, artistList);
         mListView = (AbsListView) rootView.findViewById(android.R.id.list);
         mListView.setAdapter(mAdapter);
 
@@ -82,7 +80,6 @@ public class ArtistFragment extends Fragment implements AbsListView.OnItemClickL
         mSpotifyService = api.getService();
 
         return rootView;
-
     }
 
     @Override

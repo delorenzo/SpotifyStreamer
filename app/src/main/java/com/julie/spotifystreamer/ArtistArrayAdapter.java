@@ -10,6 +10,8 @@ import android.widget.ArrayAdapter;
 import android.widget.ImageView;
 import android.widget.TextView;
 
+import com.squareup.picasso.Picasso;
+
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
@@ -51,7 +53,9 @@ public class ArtistArrayAdapter extends ArrayAdapter<ArtistContent> {
         }
 
         //Populate the data into the view
-        viewHolder.thumbnailImage.setImageBitmap(artist.getThumbnailBitmap());
+        if (artist.hasThumbnail()) {
+            Picasso.with(getContext()).load(artist.getThumbnailURL()).into(viewHolder.thumbnailImage);
+        }
         viewHolder.artistName.setText(artist.getName());
 
         return convertView;

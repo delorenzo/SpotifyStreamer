@@ -8,6 +8,8 @@ import android.widget.ArrayAdapter;
 import android.widget.ImageView;
 import android.widget.TextView;
 
+import com.squareup.picasso.Picasso;
+
 import java.util.ArrayList;
 
 /**
@@ -28,7 +30,7 @@ public class TrackArrayAdapter extends ArrayAdapter<TrackContent> {
     @Override
     public View getView(int position, View convertView, ViewGroup parent) {
         ViewHolder viewHolder;
-        TrackContent mTrack = getItem(position);
+        TrackContent track = getItem(position);
 
         //If a view does not exist, inflate it and set up the ViewHolder.
         //Otherwise, load the ViewHolder from the existing view.
@@ -46,9 +48,11 @@ public class TrackArrayAdapter extends ArrayAdapter<TrackContent> {
         }
 
         //populate the data into the view
-        viewHolder.thumbnailImage.setImageBitmap(mTrack.getThumbnailBitmap());
-        viewHolder.albumName.setText(mTrack.getAlbumName());
-        viewHolder.trackName.setText(mTrack.getTrackName());
+        if (track.hasThumbnail()) {
+            Picasso.with(getContext()).load(track.getThumbnailURL()).into(viewHolder.thumbnailImage);
+        }
+        viewHolder.albumName.setText(track.getAlbumName());
+        viewHolder.trackName.setText(track.getTrackName());
 
         return convertView;
     }

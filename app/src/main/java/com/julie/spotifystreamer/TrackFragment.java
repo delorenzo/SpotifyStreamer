@@ -3,20 +3,21 @@ package com.julie.spotifystreamer;
 import android.app.Activity;
 import android.os.AsyncTask;
 import android.os.Bundle;
-import android.app.Fragment;
+import android.support.v4.app.Fragment;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.AbsListView;
 import android.widget.AdapterView;
-import android.widget.ArrayAdapter;
 import android.widget.ListAdapter;
 import android.widget.TextView;
 
-
-import com.julie.spotifystreamer.dummy.DummyContent;
-
 import java.util.ArrayList;
+import java.util.Hashtable;
+
+import kaaes.spotify.webapi.android.SpotifyService;
+import kaaes.spotify.webapi.android.models.Track;
+import kaaes.spotify.webapi.android.models.Tracks;
 
 /**
  * A fragment representing a list of Items.
@@ -24,31 +25,25 @@ import java.util.ArrayList;
  * Large screen devices (such as tablets) are supported by replacing the ListView
  * with a GridView.
  * <p/>
- * Activities containing this fragment MUST implement the {@link OnFragmentInteractionListener}
+ * Activities containing this fragment MUST implement the {@link OnTrackSelectedListener}
  * interface.
  */
 public class TrackFragment extends Fragment implements AbsListView.OnItemClickListener {
 
-    // TODO: Rename parameter arguments, choose names that match
-    // the fragment initialization parameters, e.g. ARG_ITEM_NUMBER
-    private static final String ARG_PARAM1 = "param1";
-    private static final String ARG_PARAM2 = "param2";
+    private static final String ARG_SPOTIFY_ID = "spotifyId";
     private static final String LOG_TAG = TrackFragment.class.getSimpleName();
-
-    // TODO: Rename and change types of parameters
-    private String mParam1;
-    private String mParam2;
-
-    private OnFragmentInteractionListener mListener;
+    private String mSpotifyId;
+    private OnTrackSelectedListener mListener;
     private AbsListView mListView;
     private TrackArrayAdapter mAdapter;
+    private SpotifyService mSpotifyService;
+    //TODO: make this user modifiable via a settings preference screen
+    private static final String COUNTRY_CODE = "US";
 
-    // TODO: Rename and change types of parameters
-    public static TrackFragment newInstance(String param1, String param2) {
+    public static TrackFragment newInstance(String spotifyId) {
         TrackFragment fragment = new TrackFragment();
         Bundle args = new Bundle();
-        args.putString(ARG_PARAM1, param1);
-        args.putString(ARG_PARAM2, param2);
+        args.putString(ARG_SPOTIFY_ID, spotifyId);
         fragment.setArguments(args);
         return fragment;
     }
@@ -63,14 +58,19 @@ public class TrackFragment extends Fragment implements AbsListView.OnItemClickLi
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-
         if (getArguments() != null) {
-            mParam1 = getArguments().getString(ARG_PARAM1);
-            mParam2 = getArguments().getString(ARG_PARAM2);
+            mSpotifyId = getArguments().getString(ARG_SPOTIFY_ID);
         }
-
         mAdapter = new TrackArrayAdapter(getActivity(),
                 android.R.layout.simple_list_item_1, new ArrayList<TrackContent>());
+        mSpotifyService =  ((MainActivity)this.getActivity()).getSpotifyService();
+    }
+
+    @Override
+    public void onStart()
+    {
+        super.onStart();
+        new RetrieveTrackTask().execute();
     }
 
     @Override
@@ -80,7 +80,7 @@ public class TrackFragment extends Fragment implements AbsListView.OnItemClickLi
 
         // Set the adapter
         mListView = (AbsListView) view.findViewById(android.R.id.list);
-        ((AdapterView<ListAdapter>) mListView).setAdapter(mAdapter);
+        mListView.setAdapter(mAdapter);
 
         // Set OnItemClickListener so we can be notified on item clicks
         mListView.setOnItemClickListener(this);
@@ -92,10 +92,10 @@ public class TrackFragment extends Fragment implements AbsListView.OnItemClickLi
     public void onAttach(Activity activity) {
         super.onAttach(activity);
         try {
-            mListener = (OnFragmentInteractionListener) activity;
+            mListener = (OnTrackSelectedListener) activity;
         } catch (ClassCastException e) {
             throw new ClassCastException(activity.toString()
-                    + " must implement OnFragmentInteractionListener");
+                    + " must implement OnTrackSelectedListener");
         }
     }
 
@@ -138,17 +138,27 @@ public class TrackFragment extends Fragment implements AbsListView.OnItemClickLi
      * "http://developer.android.com/training/basics/fragments/communicating.html"
      * >Communicating with Other Fragments</a> for more information.
      */
-    public interface OnFragmentInteractionListener {
-        public void onTrackSelected(String spotifyId);
+    public interface OnTrackSelectedListener {
+        void onTrackSelected(String spotifyId);
     }
 
     private class RetrieveTrackTask extends AsyncTask<String, Void, ArrayList<TrackContent>> {
         @Override
         protected ArrayList<TrackContent> doInBackground(String... params) {
-
-
+            Hashtable<String, Object> optionsMap = new Hashtable<>();
+            optionsMap.put(SpotifyService.COUNTRY, COUNTRY_CODE);
             ArrayList<TrackContent> trackList = new ArrayList<>();
-
+            Tracks tracks = mSpotifyService.getArtistTopTrack(mSpotifyId, optionsMap);
+            if (tracks == null) {
+                return null;
+            }
+            for (Track t: tracks.tracks) {
+                String thumbnailURL = "";
+                if (!t.album.images.isEmpty()) {
+                    thumbnailURL = t.album.images.get(0).url;
+                }
+                trackList.add(new TrackContent(t.album.name, t.name, t.id, thumbnailURL));
+            }
             return trackList;
         }
 

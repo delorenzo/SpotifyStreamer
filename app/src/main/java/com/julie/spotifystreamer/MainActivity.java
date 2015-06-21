@@ -1,18 +1,23 @@
 package com.julie.spotifystreamer;
 
-import android.app.Activity;
+import android.support.v4.app.Fragment;
+import android.support.v4.app.FragmentTransaction;
 import android.os.Bundle;
-import android.support.v4.app.FragmentActivity;
-import android.util.Log;
+import android.support.v7.app.AppCompatActivity;
 import android.view.Menu;
 import android.view.MenuItem;
 
-public class MainActivity extends FragmentActivity implements ArtistFragment.OnArtistSelectedListener {
-    public String test;
+import kaaes.spotify.webapi.android.SpotifyApi;
+import kaaes.spotify.webapi.android.SpotifyService;
+
+public class MainActivity extends AppCompatActivity implements ArtistFragment.OnArtistSelectedListener, TrackFragment.OnTrackSelectedListener {
+    private static SpotifyService mSpotifyService;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+        SpotifyApi api = new SpotifyApi();
+        mSpotifyService = api.getService();
 
         if (findViewById(R.id.main_layout) != null) {
             if (savedInstanceState != null) {
@@ -47,6 +52,19 @@ public class MainActivity extends FragmentActivity implements ArtistFragment.OnA
     }
 
     public void onArtistSelected(String spotifyId) {
-        Log.v("Spotify ID:  ", spotifyId);
+        Fragment trackFragment = TrackFragment.newInstance(spotifyId);
+        FragmentTransaction transaction = getSupportFragmentManager().beginTransaction();
+        transaction.replace(R.id.main_layout, trackFragment);
+        transaction.addToBackStack(null);
+        transaction.commit();
+    }
+
+    public void onTrackSelected(String spotifyId) {
+        //TODO: play the track
+    }
+
+    public SpotifyService getSpotifyService()
+    {
+        return mSpotifyService;
     }
 }

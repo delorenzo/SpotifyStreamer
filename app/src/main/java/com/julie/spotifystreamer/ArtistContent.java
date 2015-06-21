@@ -9,13 +9,13 @@ import android.net.Uri;
 public class ArtistContent {
     private String artistName;
     private String spotifyId;
-    private Bitmap thumbnailBitmap;
+    private String thumbnailURL;
 
-    public ArtistContent(String name, String id, Bitmap thumbnail)
+    public ArtistContent(String name, String id, String thumbnail)
     {
         artistName = name;
         spotifyId = id;
-        thumbnailBitmap = thumbnail;
+        thumbnailURL = thumbnail;
     }
 
     public String getSpotifyId()
@@ -28,8 +28,7 @@ public class ArtistContent {
         return artistName;
     }
 
-    public Bitmap getThumbnailBitmap()
-    {
-        return thumbnailBitmap;
-    }
+    public String getThumbnailURL() {return thumbnailURL; }
+
+    public Boolean hasThumbnail() { return !thumbnailURL.isEmpty(); }
 }

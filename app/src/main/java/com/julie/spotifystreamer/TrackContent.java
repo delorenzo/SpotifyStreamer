@@ -9,32 +9,31 @@ public class TrackContent {
     private String albumName;
     private String trackName;
     private String spotifyId;
-    private Bitmap thumbnailBitmap;
+    private String thumbnailURL;
 
-    public TrackContent (String album, String track, String id, Bitmap thumbnail) {
+    public TrackContent (String album, String track, String id, String thumbnail) {
         albumName = album;
         trackName = track;
         spotifyId = id;
-        thumbnailBitmap = thumbnail;
+        thumbnailURL = thumbnail;
     }
 
-    String getAlbumName()
-    {
-        return albumName;
-    }
+    public String getAlbumName() {return albumName; }
 
-    String getSpotifyId()
+    public String getSpotifyId()
     {
         return spotifyId;
     }
 
-    String getTrackName()
+    public String getTrackName()
     {
         return trackName;
     }
 
-    Bitmap getThumbnailBitmap()
+    public String getThumbnailURL()
     {
-        return thumbnailBitmap;
+        return thumbnailURL;
     }
+
+    public Boolean hasThumbnail() { return !thumbnailURL.isEmpty(); }
 }

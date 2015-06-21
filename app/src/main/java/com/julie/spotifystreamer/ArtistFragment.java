@@ -1,6 +1,7 @@
 package com.julie.spotifystreamer;
 
 import android.app.Activity;
+import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.os.AsyncTask;
@@ -13,17 +14,16 @@ import android.view.ViewGroup;
 import android.widget.AbsListView;
 import android.widget.AdapterView;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
 
-import kaaes.spotify.webapi.android.SpotifyApi;
 import kaaes.spotify.webapi.android.SpotifyService;
 import kaaes.spotify.webapi.android.models.Artist;
 import kaaes.spotify.webapi.android.models.ArtistsPager;
-import kaaes.spotify.webapi.android.models.Image;
 
 /**
  * A fragment representing a list of Items.
@@ -35,14 +35,13 @@ import kaaes.spotify.webapi.android.models.Image;
  * interface.
  */
 public class ArtistFragment extends Fragment implements AbsListView.OnItemClickListener {
-
     private OnArtistSelectedListener mListener;
     private AbsListView mListView;
     private ArtistArrayAdapter mAdapter;
     private SpotifyService mSpotifyService;
+    private Toast mToast;
 
     private static final String LOG_TAG = ArtistFragment.class.getSimpleName();
-
 
     /**
      * Mandatory empty constructor for the fragment manager to instantiate the
@@ -54,14 +53,15 @@ public class ArtistFragment extends Fragment implements AbsListView.OnItemClickL
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        mSpotifyService =  ((MainActivity)this.getActivity()).getSpotifyService();
+        mAdapter = new ArtistArrayAdapter(getActivity(),
+                android.R.layout.simple_list_item_1, new ArrayList<ArtistContent>());
     }
 
     @Override
     public void onStart() {
         super.onStart();
-        new RetrieveArtistTask().execute("Coldplay");
-        mAdapter = new ArtistArrayAdapter(getActivity(),
-                android.R.layout.simple_list_item_1, new ArrayList<ArtistContent>());
+        new RetrieveArtistTask(getActivity()).execute("Radiohead");
     }
 
     @Override
@@ -75,9 +75,6 @@ public class ArtistFragment extends Fragment implements AbsListView.OnItemClickL
 
         // Set OnItemClickListener so we can be notified on item clicks
         mListView.setOnItemClickListener(this);
-
-        SpotifyApi api = new SpotifyApi();
-        mSpotifyService = api.getService();
 
         return rootView;
     }
@@ -138,7 +135,10 @@ public class ArtistFragment extends Fragment implements AbsListView.OnItemClickL
     }
 
     private class RetrieveArtistTask extends AsyncTask<String, Void, ArrayList<ArtistContent>> {
-
+        private Context mContext;
+        public RetrieveArtistTask(Context context) {
+            mContext = context;
+        }
         @Override
         protected ArrayList<ArtistContent> doInBackground(String... params) {
             if (params.length < 1) {
@@ -149,21 +149,18 @@ public class ArtistFragment extends Fragment implements AbsListView.OnItemClickL
             ArtistsPager mArtistsPager = mSpotifyService.searchArtists(searchItem);
             ArrayList<ArtistContent> mArtistList = new ArrayList<>();
             List<Artist> resultList = mArtistsPager.artists.items;
+            if (resultList == null) {
+                return null;
+            }
             for (Artist a : resultList) {
-                Bitmap thumbnailIcon = null;
+                String thumbnailURL = "";
                 if (a.images.isEmpty()) {
                     //TODO:  set some placeholder image
                 }
                 else {
-                    String url = a.images.get(0).url;
-                    try {
-                        InputStream in = new java.net.URL(url).openStream();
-                        thumbnailIcon = BitmapFactory.decodeStream(in);
-                    } catch (IOException e) {
-                        Log.e(LOG_TAG, "Failed to import bitmap from " + url);
-                    }
+                    thumbnailURL = a.images.get(0).url;
                 }
-                mArtistList.add(new ArtistContent(a.name, a.id, thumbnailIcon));
+                mArtistList.add(new ArtistContent(a.name, a.id, thumbnailURL));
             }
             return mArtistList;
         }
@@ -173,6 +170,12 @@ public class ArtistFragment extends Fragment implements AbsListView.OnItemClickL
             if (result != null) {
                 mAdapter.clear();
                 mAdapter.addAll(result);
+            }
+            else {
+                if (mToast != null) {
+                    mToast.cancel();
+                }
+                mToast = Toast.makeText(mContext, "Artist not found.  Please refine your search.", Toast.LENGTH_SHORT);
             }
         }
     }

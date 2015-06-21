@@ -4,6 +4,8 @@ import android.app.Activity;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
+import android.support.v7.app.ActionBar;
+import android.support.v7.app.AppCompatActivity;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -31,19 +33,24 @@ import kaaes.spotify.webapi.android.models.Tracks;
 public class TrackFragment extends Fragment implements AbsListView.OnItemClickListener {
 
     private static final String ARG_SPOTIFY_ID = "spotifyId";
+    private static final String ARG_ARTIST = "artist";
     private static final String LOG_TAG = TrackFragment.class.getSimpleName();
+
     private String mSpotifyId;
+    private String mArtist;
     private OnTrackSelectedListener mListener;
     private AbsListView mListView;
     private TrackArrayAdapter mAdapter;
     private SpotifyService mSpotifyService;
+
     //TODO: make this user modifiable via a settings preference screen
     private static final String COUNTRY_CODE = "US";
 
-    public static TrackFragment newInstance(String spotifyId) {
+    public static TrackFragment newInstance(String spotifyId, String artist) {
         TrackFragment fragment = new TrackFragment();
         Bundle args = new Bundle();
         args.putString(ARG_SPOTIFY_ID, spotifyId);
+        args.putString(ARG_ARTIST, artist);
         fragment.setArguments(args);
         return fragment;
     }
@@ -60,7 +67,11 @@ public class TrackFragment extends Fragment implements AbsListView.OnItemClickLi
         super.onCreate(savedInstanceState);
         if (getArguments() != null) {
             mSpotifyId = getArguments().getString(ARG_SPOTIFY_ID);
+            mArtist = getArguments().getString(ARG_ARTIST);
         }
+        ActionBar actionBar = ((AppCompatActivity)getActivity()).getSupportActionBar();
+        actionBar.setTitle(getString(R.string.top_ten_tracks));
+        actionBar.setSubtitle(mArtist);
         mAdapter = new TrackArrayAdapter(getActivity(),
                 android.R.layout.simple_list_item_1, new ArrayList<TrackContent>());
         mSpotifyService =  ((MainActivity)this.getActivity()).getSpotifyService();

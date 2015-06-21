@@ -103,7 +103,7 @@ public class ArtistFragment extends Fragment implements AbsListView.OnItemClickL
             // fragment is attached to one) that an item has been selected.
             //mListener.onFragmentInteraction(ArtistContent.getSpotifyId);
             ArtistContent artist = mAdapter.getItem(position);
-            mListener.onArtistSelected(artist.getSpotifyId());
+            mListener.onArtistSelected(artist.getSpotifyId(), artist.getName());
         }
     }
 
@@ -131,7 +131,7 @@ public class ArtistFragment extends Fragment implements AbsListView.OnItemClickL
      * >Communicating with Other Fragments</a> for more information.
      */
     public interface OnArtistSelectedListener {
-        void onArtistSelected(String spotifyId);
+        void onArtistSelected(String spotifyId, String artistName);
     }
 
     private class RetrieveArtistTask extends AsyncTask<String, Void, ArrayList<ArtistContent>> {

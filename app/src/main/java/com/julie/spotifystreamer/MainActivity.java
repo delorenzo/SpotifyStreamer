@@ -51,8 +51,8 @@ public class MainActivity extends AppCompatActivity implements ArtistFragment.On
         return super.onOptionsItemSelected(item);
     }
 
-    public void onArtistSelected(String spotifyId) {
-        Fragment trackFragment = TrackFragment.newInstance(spotifyId);
+    public void onArtistSelected(String spotifyId, String artistName) {
+        Fragment trackFragment = TrackFragment.newInstance(spotifyId, artistName);
         FragmentTransaction transaction = getSupportFragmentManager().beginTransaction();
         transaction.replace(R.id.main_layout, trackFragment);
         transaction.addToBackStack(null);

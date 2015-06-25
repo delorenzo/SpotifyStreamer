@@ -3,6 +3,7 @@
     android:orientation="horizontal" android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:id="@+id/list_item_track_layout"
+    android:background="?android:windowBackground"
     android:weightSum="1">
     <ImageView
         android:id="@+id/album_thumbnail_image"

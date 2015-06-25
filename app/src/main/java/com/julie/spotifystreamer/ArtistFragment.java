@@ -2,11 +2,11 @@ package com.julie.spotifystreamer;
 
 import android.app.Activity;
 import android.content.Context;
-import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
+import android.support.v7.app.ActionBar;
+import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -16,8 +16,6 @@ import android.widget.AdapterView;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import java.io.IOException;
-import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -40,7 +38,9 @@ public class ArtistFragment extends Fragment implements AbsListView.OnItemClickL
     private ArtistArrayAdapter mAdapter;
     private SpotifyService mSpotifyService;
     private Toast mToast;
+    private String mSearchQuery;
 
+    private static final String ARG_SEARCH_QUERY = "searchQuery";
     private static final String LOG_TAG = ArtistFragment.class.getSimpleName();
 
     /**
@@ -50,9 +50,22 @@ public class ArtistFragment extends Fragment implements AbsListView.OnItemClickL
     public ArtistFragment() {
     }
 
+    public static ArtistFragment newInstance(String searchQuery) {
+        ArtistFragment fragment = new ArtistFragment();
+        Bundle args = new Bundle();
+        args.putString(ARG_SEARCH_QUERY, searchQuery);
+        fragment.setArguments(args);
+        return fragment;
+    }
+
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        if (getArguments() != null) {
+            mSearchQuery = getArguments().getString(ARG_SEARCH_QUERY);
+        }
+        ActionBar actionBar = ((AppCompatActivity)getActivity()).getSupportActionBar();
+        actionBar.setTitle(getString(R.string.app_name));
         mSpotifyService =  ((MainActivity)this.getActivity()).getSpotifyService();
         mAdapter = new ArtistArrayAdapter(getActivity(),
                 android.R.layout.simple_list_item_1, new ArrayList<ArtistContent>());
@@ -61,7 +74,10 @@ public class ArtistFragment extends Fragment implements AbsListView.OnItemClickL
     @Override
     public void onStart() {
         super.onStart();
-        new RetrieveArtistTask(getActivity()).execute("Radiohead");
+        setEmptyText(getString(R.string.empty_artist_list));
+        if (mSearchQuery != null && !mSearchQuery.isEmpty()) {
+            new RetrieveArtistTask(getActivity()).execute(mSearchQuery);
+        }
     }
 
     @Override
@@ -149,7 +165,7 @@ public class ArtistFragment extends Fragment implements AbsListView.OnItemClickL
             ArtistsPager mArtistsPager = mSpotifyService.searchArtists(searchItem);
             ArrayList<ArtistContent> mArtistList = new ArrayList<>();
             List<Artist> resultList = mArtistsPager.artists.items;
-            if (resultList == null) {
+            if (resultList == null || resultList.isEmpty()) {
                 return null;
             }
             for (Artist a : resultList) {

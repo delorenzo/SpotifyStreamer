@@ -50,6 +50,7 @@ public class MainActivity extends AppCompatActivity implements ArtistFragment.On
                 transaction.add(R.id.main_layout, artistFragment);
             }
             else {
+                //each new search discards the old search - it isn't added to the back stack.
                 transaction.replace(R.id.main_layout, artistFragment);
             }
             transaction.commit();
@@ -67,7 +68,8 @@ public class MainActivity extends AppCompatActivity implements ArtistFragment.On
         searchView.setSearchableInfo(searchManager.getSearchableInfo(getComponentName()));
         searchView.setIconifiedByDefault(false);
         searchView.setQueryRefinementEnabled(true);
-        //for some reason the search hint from searchable.xml is not showing..
+        //the search hint from searchable.xml doesn't show, so call setQueryHint here
+        //see https://stackoverflow.com/questions/20082535/hint-in-search-widget-within-action-bar-is-not-showing-up
         searchView.setQueryHint(getString(R.string.search_hint));
 
         return true;

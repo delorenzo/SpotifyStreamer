@@ -74,6 +74,7 @@ public class TrackFragment extends Fragment implements AbsListView.OnItemClickLi
         mAdapter = new TrackArrayAdapter(getActivity(),
                 android.R.layout.simple_list_item_1, new ArrayList<TrackContent>());
         mSpotifyService =  ((MainActivity)this.getActivity()).getSpotifyService();
+        setRetainInstance(true);
     }
 
     @Override

@@ -70,6 +70,7 @@ public class ArtistFragment extends Fragment implements AbsListView.OnItemClickL
         mSpotifyService =  ((MainActivity)this.getActivity()).getSpotifyService();
         mAdapter = new ArtistArrayAdapter(getActivity(),
                 android.R.layout.simple_list_item_1, new ArrayList<ArtistContent>());
+        setRetainInstance(true);
     }
 
     @Override

@@ -42,7 +42,6 @@ public class TrackFragment extends Fragment implements AbsListView.OnItemClickLi
     private TrackArrayAdapter mAdapter;
     private SpotifyService mSpotifyService;
 
-    //TODO: make this user modifiable via a settings preference screen
     private static final String COUNTRY_CODE = "US";
 
     public static TrackFragment newInstance(String spotifyId, String artist) {
@@ -97,8 +96,10 @@ public class TrackFragment extends Fragment implements AbsListView.OnItemClickLi
         }
 
         ActionBar actionBar = ((AppCompatActivity)getActivity()).getSupportActionBar();
-        actionBar.setTitle(getString(R.string.top_ten_tracks));
-        actionBar.setSubtitle(mArtist);
+        if (actionBar != null) {
+            actionBar.setTitle(getString(R.string.top_ten_tracks));
+            actionBar.setSubtitle(mArtist);
+        }
 
         return view;
     }
@@ -111,9 +112,6 @@ public class TrackFragment extends Fragment implements AbsListView.OnItemClickLi
         } catch (ClassCastException e) {
             throw new ClassCastException(activity.toString()
                     + " must implement OnTrackSelectedListener");
-        }
-        if (getActivity() == null) {
-            return;
         }
     }
 

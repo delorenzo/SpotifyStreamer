@@ -30,18 +30,17 @@ import kaaes.spotify.webapi.android.models.Tracks;
  * interface.
  */
 public class TrackFragment extends Fragment implements AbsListView.OnItemClickListener {
-
-    private static final String ARG_SPOTIFY_ID = "spotifyId";
-    private static final String ARG_ARTIST = "artist";
-    private static final String LOG_TAG = TrackFragment.class.getSimpleName();
-
     private String mSpotifyId;
     private String mArtist;
     private OnTrackSelectedListener mListener;
     private AbsListView mListView;
     private TrackArrayAdapter mAdapter;
+    private ArrayList<TrackContent> mTrackList;
     private SpotifyService mSpotifyService;
 
+    private static final String ARG_SPOTIFY_ID = "spotifyId";
+    private static final String ARG_ARTIST = "artist";
+    private static final String ARG_TRACK_LIST = "trackList";
     private static final String COUNTRY_CODE = "US";
 
     public static TrackFragment newInstance(String spotifyId, String artist) {
@@ -67,10 +66,10 @@ public class TrackFragment extends Fragment implements AbsListView.OnItemClickLi
             mSpotifyId = getArguments().getString(ARG_SPOTIFY_ID);
             mArtist = getArguments().getString(ARG_ARTIST);
         }
+        mTrackList = new ArrayList<>();
         mAdapter = new TrackArrayAdapter(getActivity(),
-                android.R.layout.simple_list_item_1, new ArrayList<TrackContent>());
+                android.R.layout.simple_list_item_1, mTrackList);
         mSpotifyService =  ((MainActivity)this.getActivity()).getSpotifyService();
-        setRetainInstance(true);
     }
 
     @Override
@@ -90,17 +89,6 @@ public class TrackFragment extends Fragment implements AbsListView.OnItemClickLi
 
         // Set OnItemClickListener so we can be notified on item clicks
         mListView.setOnItemClickListener(this);
-
-        if (mAdapter.isEmpty()) {
-            new RetrieveTrackTask().execute();
-        }
-
-        ActionBar actionBar = ((AppCompatActivity)getActivity()).getSupportActionBar();
-        if (actionBar != null) {
-            actionBar.setTitle(getString(R.string.top_ten_tracks));
-            actionBar.setSubtitle(mArtist);
-        }
-
         return view;
     }
 
@@ -128,6 +116,38 @@ public class TrackFragment extends Fragment implements AbsListView.OnItemClickLi
             // fragment is attached to one) that an item has been selected.
             TrackContent track = mAdapter.getItem(position);
             mListener.onTrackSelected(track.getSpotifyId());
+        }
+    }
+
+    @Override
+    public void onSaveInstanceState(Bundle outState) {
+        super.onSaveInstanceState(outState);
+        outState.putParcelableArrayList(ARG_TRACK_LIST, mTrackList);
+        outState.putString(ARG_ARTIST, mArtist);
+    }
+
+    @Override
+    public void onActivityCreated(Bundle savedInstanceState) {
+        super.onActivityCreated(savedInstanceState);
+        if (savedInstanceState != null) {
+            mTrackList = savedInstanceState.getParcelableArrayList(ARG_TRACK_LIST);
+            mArtist = savedInstanceState.getString(ARG_ARTIST);
+        }
+
+        //set the action bar with the artist's name
+        ActionBar actionBar = ((AppCompatActivity)getActivity()).getSupportActionBar();
+        if (actionBar != null) {
+            actionBar.setTitle(getString(R.string.top_ten_tracks));
+            actionBar.setSubtitle(mArtist);
+        }
+
+        //if the track list is not empty, assume the fragment is restoring from a config change.
+        if (mTrackList.isEmpty()) {
+            new RetrieveTrackTask().execute();
+        }
+        else {
+            mAdapter.clear();
+            mAdapter.addAll(mTrackList);
         }
     }
 
@@ -163,7 +183,7 @@ public class TrackFragment extends Fragment implements AbsListView.OnItemClickLi
         protected ArrayList<TrackContent> doInBackground(String... params) {
             Hashtable<String, Object> optionsMap = new Hashtable<>();
             optionsMap.put(SpotifyService.COUNTRY, COUNTRY_CODE);
-            ArrayList<TrackContent> trackList = new ArrayList<>();
+            mTrackList = new ArrayList<>();
             Tracks tracks = mSpotifyService.getArtistTopTrack(mSpotifyId, optionsMap);
             if (tracks == null) {
                 return null;
@@ -173,9 +193,9 @@ public class TrackFragment extends Fragment implements AbsListView.OnItemClickLi
                 if (!t.album.images.isEmpty()) {
                     thumbnailURL = t.album.images.get(0).url;
                 }
-                trackList.add(new TrackContent(t.album.name, t.name, t.id, thumbnailURL));
+                mTrackList.add(new TrackContent(t.album.name, t.name, t.id, thumbnailURL));
             }
-            return trackList;
+            return mTrackList;
         }
 
         @Override

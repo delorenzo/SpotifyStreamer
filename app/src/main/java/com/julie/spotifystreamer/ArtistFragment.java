@@ -38,10 +38,12 @@ public class ArtistFragment extends Fragment implements AbsListView.OnItemClickL
     private TextView mEmptyView;
     private ArtistArrayAdapter mAdapter;
     private SpotifyService mSpotifyService;
+    private ArrayList<ArtistContent> mArtistList;
     private Toast mToast;
     private String mSearchQuery;
 
     private static final String ARG_SEARCH_QUERY = "searchQuery";
+    private static final String ARG_ARTIST_LIST = "artistList";
     private static final String LOG_TAG = ArtistFragment.class.getSimpleName();
 
     /**
@@ -65,10 +67,10 @@ public class ArtistFragment extends Fragment implements AbsListView.OnItemClickL
         if (getArguments() != null) {
             mSearchQuery = getArguments().getString(ARG_SEARCH_QUERY);
         }
+        mArtistList = new ArrayList<>();
         mSpotifyService =  ((MainActivity)this.getActivity()).getSpotifyService();
         mAdapter = new ArtistArrayAdapter(getActivity(),
-                android.R.layout.simple_list_item_1, new ArrayList<ArtistContent>());
-        setRetainInstance(true);
+                android.R.layout.simple_list_item_1, mArtistList);
     }
 
     @Override
@@ -91,19 +93,42 @@ public class ArtistFragment extends Fragment implements AbsListView.OnItemClickL
         // Set OnItemClickListener so we can be notified on item clicks
         mListView.setOnItemClickListener(this);
 
+        ActionBar actionBar = ((AppCompatActivity)getActivity()).getSupportActionBar();
+        if (actionBar != null) {
+            actionBar.setTitle(getString(R.string.app_name));
+        }
+        return rootView;
+    }
 
+    @Override
+    public void onSaveInstanceState(Bundle outState) {
+        super.onSaveInstanceState(outState);
+        outState.putParcelableArrayList(ARG_ARTIST_LIST, mArtistList);
+    }
 
-        if (searchQueryExists() && mAdapter.isEmpty()) {
+    @Override
+    public void onActivityCreated(Bundle savedInstanceState) {
+        super.onActivityCreated(savedInstanceState);
+        if (savedInstanceState != null) {
+            mArtistList = savedInstanceState.getParcelableArrayList(ARG_ARTIST_LIST);
+        }
+
+        //if the list is not empty, we're restoring from a previous state, so
+        //update the adapter and return.
+        if (!mArtistList.isEmpty()) {
+            mAdapter.clear();
+            mAdapter.addAll(mArtistList);
+            return;
+        }
+
+        //only make the API call if the query is non-null and non-empty.
+        //otherwise, set the empty text.
+        if (searchQueryExists() && mArtistList.isEmpty()) {
             new RetrieveArtistTask(getActivity()).execute(mSearchQuery);
         }
-        else if (!searchQueryExists()){
+        else {
             setEmptyText(getString(R.string.empty_artist_list));
         }
-
-        ActionBar actionBar = ((AppCompatActivity)getActivity()).getSupportActionBar();
-        actionBar.setTitle(getString(R.string.app_name));
-
-        return rootView;
     }
 
     private Boolean searchQueryExists() {
@@ -174,7 +199,7 @@ public class ArtistFragment extends Fragment implements AbsListView.OnItemClickL
             }
             String searchItem = params[0];
             ArtistsPager mArtistsPager = mSpotifyService.searchArtists(searchItem);
-            ArrayList<ArtistContent> mArtistList = new ArrayList<>();
+            mArtistList = new ArrayList<>();
             List<Artist> resultList = mArtistsPager.artists.items;
             if (resultList == null || resultList.isEmpty()) {
                 return null;

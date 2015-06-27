@@ -68,9 +68,6 @@ public class TrackFragment extends Fragment implements AbsListView.OnItemClickLi
             mSpotifyId = getArguments().getString(ARG_SPOTIFY_ID);
             mArtist = getArguments().getString(ARG_ARTIST);
         }
-        ActionBar actionBar = ((AppCompatActivity)getActivity()).getSupportActionBar();
-        actionBar.setTitle(getString(R.string.top_ten_tracks));
-        actionBar.setSubtitle(mArtist);
         mAdapter = new TrackArrayAdapter(getActivity(),
                 android.R.layout.simple_list_item_1, new ArrayList<TrackContent>());
         mSpotifyService =  ((MainActivity)this.getActivity()).getSpotifyService();
@@ -81,7 +78,6 @@ public class TrackFragment extends Fragment implements AbsListView.OnItemClickLi
     public void onStart()
     {
         super.onStart();
-        new RetrieveTrackTask().execute();
     }
 
     @Override
@@ -96,6 +92,14 @@ public class TrackFragment extends Fragment implements AbsListView.OnItemClickLi
         // Set OnItemClickListener so we can be notified on item clicks
         mListView.setOnItemClickListener(this);
 
+        if (mAdapter.isEmpty()) {
+            new RetrieveTrackTask().execute();
+        }
+
+        ActionBar actionBar = ((AppCompatActivity)getActivity()).getSupportActionBar();
+        actionBar.setTitle(getString(R.string.top_ten_tracks));
+        actionBar.setSubtitle(mArtist);
+
         return view;
     }
 
@@ -107,6 +111,9 @@ public class TrackFragment extends Fragment implements AbsListView.OnItemClickLi
         } catch (ClassCastException e) {
             throw new ClassCastException(activity.toString()
                     + " must implement OnTrackSelectedListener");
+        }
+        if (getActivity() == null) {
+            return;
         }
     }
 

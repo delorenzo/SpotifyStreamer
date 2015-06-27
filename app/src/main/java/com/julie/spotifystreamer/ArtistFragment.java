@@ -65,8 +65,6 @@ public class ArtistFragment extends Fragment implements AbsListView.OnItemClickL
         if (getArguments() != null) {
             mSearchQuery = getArguments().getString(ARG_SEARCH_QUERY);
         }
-        ActionBar actionBar = ((AppCompatActivity)getActivity()).getSupportActionBar();
-        actionBar.setTitle(getString(R.string.app_name));
         mSpotifyService =  ((MainActivity)this.getActivity()).getSpotifyService();
         mAdapter = new ArtistArrayAdapter(getActivity(),
                 android.R.layout.simple_list_item_1, new ArrayList<ArtistContent>());
@@ -76,12 +74,6 @@ public class ArtistFragment extends Fragment implements AbsListView.OnItemClickL
     @Override
     public void onStart() {
         super.onStart();
-        if (mSearchQuery != null && !mSearchQuery.isEmpty()) {
-            new RetrieveArtistTask(getActivity()).execute(mSearchQuery);
-        }
-        else {
-            setEmptyText(getString(R.string.empty_artist_list));
-        }
     }
 
     @Override
@@ -99,7 +91,23 @@ public class ArtistFragment extends Fragment implements AbsListView.OnItemClickL
         // Set OnItemClickListener so we can be notified on item clicks
         mListView.setOnItemClickListener(this);
 
+
+
+        if (searchQueryExists() && mAdapter.isEmpty()) {
+            new RetrieveArtistTask(getActivity()).execute(mSearchQuery);
+        }
+        else if (!searchQueryExists()){
+            setEmptyText(getString(R.string.empty_artist_list));
+        }
+
+        ActionBar actionBar = ((AppCompatActivity)getActivity()).getSupportActionBar();
+        actionBar.setTitle(getString(R.string.app_name));
+
         return rootView;
+    }
+
+    private Boolean searchQueryExists() {
+        return mSearchQuery != null && !mSearchQuery.isEmpty();
     }
 
     @Override
@@ -191,7 +199,7 @@ public class ArtistFragment extends Fragment implements AbsListView.OnItemClickL
                 if (mToast != null) {
                     mToast.cancel();
                 }
-                mToast = Toast.makeText(mContext, "Artist not found.  Please refine your search.", Toast.LENGTH_LONG);
+                mToast = Toast.makeText(mContext, "Artist not found.  Please refine your search.", Toast.LENGTH_SHORT);
                 mToast.show();
             }
         }

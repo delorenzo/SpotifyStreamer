@@ -173,10 +173,7 @@ public class ArtistFragment extends Fragment implements AbsListView.OnItemClickL
             }
             for (Artist a : resultList) {
                 String thumbnailURL = "";
-                if (a.images.isEmpty()) {
-                    //TODO:  set some placeholder image
-                }
-                else {
+                if (!a.images.isEmpty()) {
                     thumbnailURL = a.images.get(0).url;
                 }
                 mArtistList.add(new ArtistContent(a.name, a.id, thumbnailURL));

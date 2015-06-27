@@ -24,6 +24,7 @@ import kaaes.spotify.webapi.android.models.Artist;
 public class ArtistArrayAdapter extends ArrayAdapter<ArtistContent> {
 
     //the ViewHolder pattern caches the view lookup to improve performance
+    //see https://github.com/codepath/android_guides/wiki/Using-an-ArrayAdapter-with-ListView
     private static class ViewHolder {
         ImageView thumbnailImage;
         TextView artistName;

@@ -6,6 +6,7 @@ import android.os.Parcelable;
 /**
  * Helper class for storing track content.
  * Implements the Parcelable interface.
+ * See http://www.developerphil.com/parcelable-vs-serializable/
  */
 public class TrackContent implements Parcelable {
     private String albumName;

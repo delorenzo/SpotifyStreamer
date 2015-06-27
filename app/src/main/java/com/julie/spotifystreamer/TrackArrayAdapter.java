@@ -17,6 +17,7 @@ import java.util.ArrayList;
  */
 public class TrackArrayAdapter extends ArrayAdapter<TrackContent> {
     //the ViewHolder pattern caches the view lookup to improve performance
+    //see https://github.com/codepath/android_guides/wiki/Using-an-ArrayAdapter-with-ListView
     private static class ViewHolder {
         ImageView thumbnailImage;
         TextView trackName;

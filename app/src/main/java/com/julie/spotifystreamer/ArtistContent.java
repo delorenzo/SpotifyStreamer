@@ -6,6 +6,7 @@ import android.os.Parcelable;
 /**
  * Helper class for storing Artist content.
  * Implements the parcelable interface.
+ * See http://www.developerphil.com/parcelable-vs-serializable/
  */
 public class ArtistContent implements Parcelable {
     private String artistName;

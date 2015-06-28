@@ -22,6 +22,8 @@ import java.util.List;
 import kaaes.spotify.webapi.android.SpotifyService;
 import kaaes.spotify.webapi.android.models.Artist;
 import kaaes.spotify.webapi.android.models.ArtistsPager;
+import retrofit.RetrofitError;
+import retrofit.mime.TypedByteArray;
 
 /**
  * A fragment representing a list of Items.
@@ -188,9 +190,14 @@ public class ArtistFragment extends Fragment implements AbsListView.OnItemClickL
 
     private class RetrieveArtistTask extends AsyncTask<String, Void, ArrayList<ArtistContent>> {
         private Context mContext;
+        private String errorMessage;
         public RetrieveArtistTask(Context context) {
             mContext = context;
         }
+
+        //may throw RetrofitError.
+        //see https://square.github.io/retrofit/javadoc/retrofit/RetrofitError.html
+        //and https://stackoverflow.com/questions/26435348/retrofiterror-getkind-example
         @Override
         protected ArrayList<ArtistContent> doInBackground(String... params) {
             if (params.length < 1) {
@@ -198,20 +205,43 @@ public class ArtistFragment extends Fragment implements AbsListView.OnItemClickL
                 return null;
             }
             String searchItem = params[0];
-            ArtistsPager mArtistsPager = mSpotifyService.searchArtists(searchItem);
-            mArtistList = new ArrayList<>();
-            List<Artist> resultList = mArtistsPager.artists.items;
-            if (resultList == null || resultList.isEmpty()) {
+            try {
+                mArtistList = new ArrayList<>();
+                ArtistsPager mArtistsPager = mSpotifyService.searchArtists(searchItem);
+                List<Artist> resultList = mArtistsPager.artists.items;
+                if (resultList == null || resultList.isEmpty()) {
+                    return null;
+                }
+                for (Artist a : resultList) {
+                    String thumbnailURL = "";
+                    if (!a.images.isEmpty()) {
+                        //return the last image in the list because they are ordered
+                        //in decreasing size order, to save data
+                        thumbnailURL = a.images.get(a.images.size()-1).url;
+                    }
+                    mArtistList.add(new ArtistContent(a.name, a.id, thumbnailURL));
+                }
+                return mArtistList;
+            } catch(RetrofitError e) {
+                Log.e(LOG_TAG, e.getMessage());
+                switch (e.getKind()) {
+                    case HTTP:
+                        //you need to cast the TypedInput object as a TypedByteArray to get
+                        //the response body as a string:
+                        //http://tsuharesu.com/get-retrofit-response-as-string/
+                        errorMessage = new String(((TypedByteArray)e.getResponse().getBody()).getBytes());
+                        break;
+                    case NETWORK:
+                        errorMessage = e.getCause().getMessage();
+                        break;
+                    case CONVERSION:
+                    case UNEXPECTED:
+                        throw e;
+                    default:
+                        throw new AssertionError("Unknown error kind:  " + e.getKind());
+                }
                 return null;
             }
-            for (Artist a : resultList) {
-                String thumbnailURL = "";
-                if (!a.images.isEmpty()) {
-                    thumbnailURL = a.images.get(0).url;
-                }
-                mArtistList.add(new ArtistContent(a.name, a.id, thumbnailURL));
-            }
-            return mArtistList;
         }
 
         @Override
@@ -219,6 +249,13 @@ public class ArtistFragment extends Fragment implements AbsListView.OnItemClickL
             if (result != null) {
                 mAdapter.clear();
                 mAdapter.addAll(result);
+            }
+            else if (errorMessage != null) {
+                if (mToast != null) {
+                    mToast.cancel();
+                }
+                mToast = Toast.makeText(mContext, errorMessage, Toast.LENGTH_SHORT);
+                mToast.show();
             }
             else {
                 if (mToast != null) {

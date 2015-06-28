@@ -1,17 +1,20 @@
 package com.julie.spotifystreamer;
 
 import android.app.Activity;
+import android.content.Context;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
 import android.support.v7.app.ActionBar;
 import android.support.v7.app.AppCompatActivity;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.AbsListView;
 import android.widget.AdapterView;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import java.util.ArrayList;
 import java.util.Hashtable;
@@ -19,6 +22,8 @@ import java.util.Hashtable;
 import kaaes.spotify.webapi.android.SpotifyService;
 import kaaes.spotify.webapi.android.models.Track;
 import kaaes.spotify.webapi.android.models.Tracks;
+import retrofit.RetrofitError;
+import retrofit.mime.TypedByteArray;
 
 /**
  * A fragment representing a list of Items.
@@ -37,11 +42,13 @@ public class TrackFragment extends Fragment implements AbsListView.OnItemClickLi
     private TrackArrayAdapter mAdapter;
     private ArrayList<TrackContent> mTrackList;
     private SpotifyService mSpotifyService;
+    private Toast mToast;
 
     private static final String ARG_SPOTIFY_ID = "spotifyId";
     private static final String ARG_ARTIST = "artist";
     private static final String ARG_TRACK_LIST = "trackList";
     private static final String COUNTRY_CODE = "US";
+    private static final String LOG_TAG = TrackFragment.class.getSimpleName();
 
     public static TrackFragment newInstance(String spotifyId, String artist) {
         TrackFragment fragment = new TrackFragment();
@@ -143,7 +150,7 @@ public class TrackFragment extends Fragment implements AbsListView.OnItemClickLi
 
         //if the track list is not empty, assume the fragment is restoring from a config change.
         if (mTrackList.isEmpty()) {
-            new RetrieveTrackTask().execute();
+            new RetrieveTrackTask(getActivity()).execute();
         }
         else {
             mAdapter.clear();
@@ -179,23 +186,53 @@ public class TrackFragment extends Fragment implements AbsListView.OnItemClickLi
     }
 
     private class RetrieveTrackTask extends AsyncTask<String, Void, ArrayList<TrackContent>> {
+        private String errorMessage;
+        private Context mContext;
+
+        public RetrieveTrackTask(Context context) {
+            mContext = context;
+        }
+
         @Override
         protected ArrayList<TrackContent> doInBackground(String... params) {
             Hashtable<String, Object> optionsMap = new Hashtable<>();
             optionsMap.put(SpotifyService.COUNTRY, COUNTRY_CODE);
-            mTrackList = new ArrayList<>();
-            Tracks tracks = mSpotifyService.getArtistTopTrack(mSpotifyId, optionsMap);
-            if (tracks == null) {
-                return null;
-            }
-            for (Track t: tracks.tracks) {
-                String thumbnailURL = "";
-                if (!t.album.images.isEmpty()) {
-                    thumbnailURL = t.album.images.get(0).url;
+            try {
+                mTrackList = new ArrayList<>();
+                Tracks tracks = mSpotifyService.getArtistTopTrack(mSpotifyId, optionsMap);
+                if (tracks == null) {
+                    return null;
                 }
-                mTrackList.add(new TrackContent(t.album.name, t.name, t.id, thumbnailURL));
+                for (Track t : tracks.tracks) {
+                    String thumbnailURL = "";
+                    if (!t.album.images.isEmpty()) {
+                        //return the last image in the list because they are ordered
+                        //in decreasing size order, to save data
+                        thumbnailURL = t.album.images.get(t.album.images.size() - 1).url;
+                    }
+                    mTrackList.add(new TrackContent(t.album.name, t.name, t.id, thumbnailURL));
+                }
+                return mTrackList;
+            } catch(RetrofitError e) {
+                Log.e(LOG_TAG, e.getMessage());
+                switch (e.getKind()) {
+                    case HTTP:
+                        //you need to cast the TypedInput object as a TypedByteArray to get
+                        //the response body as a string:
+                        //http://tsuharesu.com/get-retrofit-response-as-string/
+                        errorMessage = new String(((TypedByteArray) e.getResponse().getBody()).getBytes());
+                        break;
+                    case NETWORK:
+                        errorMessage = e.getCause().getMessage();
+                        break;
+                    case CONVERSION:
+                    case UNEXPECTED:
+                        throw e;
+                    default:
+                        throw new AssertionError("Unknown error kind:  " + e.getKind());
+                }
             }
-            return mTrackList;
+            return null;
         }
 
         @Override
@@ -203,6 +240,12 @@ public class TrackFragment extends Fragment implements AbsListView.OnItemClickLi
             if (result != null) {
                 mAdapter.clear();
                 mAdapter.addAll(result);
+            } else if (errorMessage != null) {
+                if (mToast != null) {
+                    mToast.cancel();
+                }
+                mToast = Toast.makeText(mContext, errorMessage, Toast.LENGTH_SHORT);
+                mToast.show();
             }
         }
     }

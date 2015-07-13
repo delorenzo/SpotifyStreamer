@@ -63,6 +63,17 @@ public class ArtistFragment extends Fragment implements AbsListView.OnItemClickL
         return fragment;
     }
 
+    public void updateSearchQuery(String searchQuery) {
+        mSearchQuery = searchQuery;
+
+        if (searchQueryExists() && mArtistList.isEmpty()) {
+            new RetrieveArtistTask(getActivity()).execute(mSearchQuery);
+        }
+        else {
+            setEmptyText(getString(R.string.empty_artist_list));
+        }
+    }
+
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);

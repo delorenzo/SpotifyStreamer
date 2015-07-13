@@ -18,10 +18,16 @@ import java.util.ArrayList;
 public class TrackArrayAdapter extends ArrayAdapter<TrackContent> {
     //the ViewHolder pattern caches the view lookup to improve performance
     //see https://github.com/codepath/android_guides/wiki/Using-an-ArrayAdapter-with-ListView
-    private static class ViewHolder {
-        ImageView thumbnailImage;
-        TextView trackName;
-        TextView albumName;
+    public static class ViewHolder {
+        public final ImageView thumbnailImage;
+        public final TextView trackName;
+        public final TextView albumName;
+
+        public ViewHolder(View view) {
+            albumName = (TextView) view.findViewById(R.id.album_name);
+            trackName = (TextView) view.findViewById(R.id.track_name);
+            thumbnailImage = (ImageView) view.findViewById(R.id.album_thumbnail_image);
+        }
     }
 
     public TrackArrayAdapter(Context context, int resource, ArrayList<TrackContent> objects) {
@@ -36,12 +42,9 @@ public class TrackArrayAdapter extends ArrayAdapter<TrackContent> {
         //If a view does not exist, inflate it and set up the ViewHolder.
         //Otherwise, load the ViewHolder from the existing view.
         if (convertView == null) {
-            viewHolder = new ViewHolder();
             LayoutInflater inflater = LayoutInflater.from(getContext());
             convertView = inflater.inflate(R.layout.list_item_track, parent, false);
-            viewHolder.albumName = (TextView) convertView.findViewById(R.id.album_name);
-            viewHolder.trackName = (TextView) convertView.findViewById(R.id.track_name);
-            viewHolder.thumbnailImage = (ImageView) convertView.findViewById(R.id.album_thumbnail_image);
+            viewHolder = new ViewHolder(convertView);
             convertView.setTag(viewHolder);
         }
         else {

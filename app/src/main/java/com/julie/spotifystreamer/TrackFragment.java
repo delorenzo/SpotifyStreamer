@@ -141,12 +141,7 @@ public class TrackFragment extends Fragment implements AbsListView.OnItemClickLi
             mArtist = savedInstanceState.getString(ARG_ARTIST);
         }
 
-        //set the action bar with the artist's name
-        ActionBar actionBar = ((AppCompatActivity)getActivity()).getSupportActionBar();
-        if (actionBar != null) {
-            actionBar.setTitle(getString(R.string.top_ten_tracks));
-            actionBar.setSubtitle(mArtist);
-        }
+        updateActionBar();
 
         //if the track list is not empty, assume the fragment is restoring from a config change.
         if (mTrackList.isEmpty()) {
@@ -158,11 +153,22 @@ public class TrackFragment extends Fragment implements AbsListView.OnItemClickLi
         }
     }
 
-    /**
-     * The default content for this Fragment has a TextView that is shown when
-     * the list is empty. If you would like to change the text, call this method
-     * to supply the text it should use.
-     */
+    //set the action bar with the artist's name
+    private void updateActionBar() {
+        ActionBar actionBar = ((AppCompatActivity)getActivity()).getSupportActionBar();
+        if (actionBar != null) {
+            actionBar.setTitle(getString(R.string.top_ten_tracks));
+            actionBar.setSubtitle(mArtist);
+        }
+    }
+
+     public void updateSelectedTrack(String spotifyId, String artist) {
+        mSpotifyId = spotifyId;
+        mArtist = artist;
+        updateActionBar();
+        new RetrieveTrackTask(getActivity()).execute();
+    }
+
     public void setEmptyText(CharSequence emptyText) {
         View emptyView = mListView.getEmptyView();
 

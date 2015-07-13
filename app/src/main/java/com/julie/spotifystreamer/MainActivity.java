@@ -16,18 +16,33 @@ import kaaes.spotify.webapi.android.SpotifyService;
 
 public class MainActivity extends AppCompatActivity implements ArtistFragment.OnArtistSelectedListener, TrackFragment.OnTrackSelectedListener {
     private static SpotifyService mSpotifyService;
+    private Boolean mTwoPane;
+    private static final String ARTISTFRAGMENT_TAG = "AFTAG";
+    private static final String TRACKFRAGMENT_TAG = "TFTAG";
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         SpotifyApi api = new SpotifyApi();
         mSpotifyService = api.getService();
-        if (findViewById(R.id.main_layout) != null) {
-            if (savedInstanceState != null) {
-                return;
-            }
-            ArtistFragment artistFragment = ArtistFragment.newInstance("");
-            getSupportFragmentManager().beginTransaction().add(R.id.main_layout, artistFragment).commit();
+
+        if (savedInstanceState != null) {
+            return;
+        }
+
+        if (findViewById(R.id.container) != null) {
+            mTwoPane = false;
+            getSupportFragmentManager().beginTransaction()
+                    .add(R.id.container, new ArtistFragment(), ARTISTFRAGMENT_TAG)
+                    .commit();
+        }
+        else if (findViewById(R.id.artist_container) != null && findViewById(R.id.track_container) != null) {
+            mTwoPane = true;
+            TrackFragment trackFragment = new TrackFragment();
+            getSupportFragmentManager().beginTransaction()
+                    .add(R.id.artist_container, new ArtistFragment(), ARTISTFRAGMENT_TAG)
+                    .add(R.id.track_container, new TrackFragment(), TRACKFRAGMENT_TAG)
+                    .commit();
         }
     }
 
@@ -38,22 +53,12 @@ public class MainActivity extends AppCompatActivity implements ArtistFragment.On
     }
 
     private void handleIntent(Intent intent) {
-        if (findViewById(R.id.main_layout) == null) {
-            return;
-        }
-
         if (Intent.ACTION_SEARCH.equals(intent.getAction())) {
             String query = intent.getStringExtra(SearchManager.QUERY);
-            Fragment artistFragment = ArtistFragment.newInstance(query);
-            FragmentTransaction transaction = getSupportFragmentManager().beginTransaction();
-            if (transaction.isEmpty()) {
-                transaction.add(R.id.main_layout, artistFragment);
+            ArtistFragment artistFragment = (ArtistFragment) getSupportFragmentManager().findFragmentByTag(ARTISTFRAGMENT_TAG);
+            if (artistFragment != null) {
+                artistFragment.updateSearchQuery(query);
             }
-            else {
-                //each new search discards the old search - it isn't added to the back stack.
-                transaction.replace(R.id.main_layout, artistFragment);
-            }
-            transaction.commit();
         }
     }
 
@@ -90,12 +95,22 @@ public class MainActivity extends AppCompatActivity implements ArtistFragment.On
         return super.onOptionsItemSelected(item);
     }
 
+    //for smaller devices, replace the artist fragment in the container with the track fragment.
+    //for larger devices (sw-600dp) place the track fragment alongside the artist fragment.
     public void onArtistSelected(String spotifyId, String artistName) {
-        Fragment trackFragment = TrackFragment.newInstance(spotifyId, artistName);
-        FragmentTransaction transaction = getSupportFragmentManager().beginTransaction();
-        transaction.replace(R.id.main_layout, trackFragment);
-        transaction.addToBackStack(null);
-        transaction.commit();
+        if (mTwoPane) {
+            TrackFragment trackFragment = (TrackFragment) getSupportFragmentManager().findFragmentByTag(TRACKFRAGMENT_TAG);
+            if (trackFragment != null) {
+                trackFragment.updateSelectedTrack(spotifyId, artistName);
+            }
+        }
+        else {
+            Fragment trackFragment = TrackFragment.newInstance(spotifyId, artistName);
+            FragmentTransaction transaction = getSupportFragmentManager().beginTransaction();
+            transaction.replace(R.id.container, trackFragment);
+            transaction.addToBackStack(null);
+            transaction.commit();
+        }
     }
 
     public void onTrackSelected(String spotifyId) {

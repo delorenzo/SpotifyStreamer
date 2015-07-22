@@ -11,4 +11,7 @@
         <item name="android:layout_width">100dip</item>
         <item name="android:layout_height">100dip</item>
     </style>
+
+    <!-- this style is a stub in sub 600dp style configurations. -->
+    <style name="ListStyle" />
 </resources>

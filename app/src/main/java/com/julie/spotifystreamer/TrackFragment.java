@@ -201,6 +201,7 @@ public class TrackFragment extends Fragment implements AbsListView.OnItemClickLi
 
         @Override
         protected ArrayList<TrackContent> doInBackground(String... params) {
+            if (mSpotifyId == null) { return null; }
             Hashtable<String, Object> optionsMap = new Hashtable<>();
             optionsMap.put(SpotifyService.COUNTRY, COUNTRY_CODE);
             try {

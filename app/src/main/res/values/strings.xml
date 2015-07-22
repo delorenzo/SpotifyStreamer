@@ -11,4 +11,6 @@
     <string name="album_placeholder">Album</string>
 
     <string name="empty_artist_list">Search for an artist</string>
+    <string name="title_activity_track_player">TrackPlayerActivity</string>
+    <string name="hello_world">Hello world!</string>
 </resources>

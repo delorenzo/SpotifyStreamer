@@ -1,29 +1,27 @@
 <?xml version="1.0" encoding="utf-8"?>
-<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:orientation="horizontal" android:layout_width="match_parent"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:orientation="horizontal"
+    android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:id="@+id/list_item_track_layout"
-    android:background="@drawable/touch_selector"
-    android:weightSum="1">
+    android:background="@drawable/touch_selector">
     <ImageView
         android:id="@+id/album_thumbnail_image"
         style="@style/thumbnail_image"/>
-    <TextView
-        android:id="@+id/album_name"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:paddingTop="12dp"
-        android:layout_alignParentTop="true"
-        android:hint="@string/album_placeholder"
-        android:layout_gravity="center_horizontal"
-        android:layout_toRightOf="@id/album_thumbnail_image"/>
-    <TextView
-        android:id="@+id/track_name"
-        android:paddingBottom="12dp"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:hint="@string/track_placeholder"
-        android:layout_gravity="center_horizontal"
-        android:layout_toRightOf="@id/album_thumbnail_image"
-        android:layout_below="@id/album_name"/>
-</RelativeLayout>
+    <LinearLayout
+        android:orientation="vertical"
+        android:layout_height="?android:listPreferredItemHeight"
+        android:layout_width="match_parent">
+        <TextView
+            android:id="@+id/album_name"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:hint="@string/album_placeholder"
+            android:layout_toRightOf="@id/album_thumbnail_image"/>
+        <TextView
+            android:id="@+id/track_name"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:hint="@string/track_placeholder"/>
+    </LinearLayout>
+</LinearLayout>

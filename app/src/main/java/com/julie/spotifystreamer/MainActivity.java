@@ -117,7 +117,8 @@ public class MainActivity extends AppCompatActivity implements ArtistFragment.On
     }
 
     public void onTrackSelected(String spotifyId) {
-        //TODO: play the track
+        Intent intent = new Intent(this, TrackPlayerActivity.class);
+        startActivity(intent);
     }
 
     public SpotifyService getSpotifyService()

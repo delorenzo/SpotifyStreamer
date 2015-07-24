@@ -5,10 +5,15 @@
         <!-- Customize your theme here. -->
     </style>
 
-    <style name="PlayerTheme" parent="AppTheme">
+    <!-- the player theme floats above the other fragments and has no action bar -->
+    <!-- https://stackoverflow.com/questions/25863676/android-activity-without-actionbar -->
+    <!-- https://stackoverflow.com/questions/29790070/upgraded-to-appcompat-v22-1-0-and-now-getting-illegalargumentexception-appcompa -->
+    <style name="PlayerTheme" parent="Theme.AppCompat.Light.NoActionBar">
         <item name="android:windowIsTranslucent">true</item>
         <item name="android:windowIsFloating">true</item>
         <item name="android:backgroundDimEnabled">true</item>
+        <item name="android:windowActionBar">false</item>
+        <item name="android:windowNoTitle">true</item>
     </style>
 
     <style name="thumbnail_image">

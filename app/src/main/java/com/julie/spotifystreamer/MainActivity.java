@@ -19,6 +19,7 @@ public class MainActivity extends AppCompatActivity implements ArtistFragment.On
     private Boolean mTwoPane;
     private static final String ARTISTFRAGMENT_TAG = "AFTAG";
     private static final String TRACKFRAGMENT_TAG = "TFTAG";
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);

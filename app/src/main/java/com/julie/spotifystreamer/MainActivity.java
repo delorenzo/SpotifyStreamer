@@ -117,8 +117,9 @@ public class MainActivity extends AppCompatActivity implements ArtistFragment.On
         transaction.commit();
     }
 
-    public void onTrackSelected(String spotifyId) {
+    public void onTrackSelected(TrackContent track) {
         Intent intent = new Intent(this, TrackPlayerActivity.class);
+        intent.putExtra(TrackPlayerActivity.ARG_TRACK, track);
         startActivity(intent);
     }
 

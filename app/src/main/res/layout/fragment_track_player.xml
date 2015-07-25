@@ -10,22 +10,19 @@
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="@string/artist_placeholder"
         android:id="@+id/artist_name"/>
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="@string/album_placeholder"
         android:id="@+id/album_name"/>
     <ImageView
         android:layout_width="200dp"
         android:layout_height="200dp"
-        android:src="@mipmap/ic_launcher"/>
+        android:id="@+id/player_track_image"/>
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:id="@+id/track_name"
-        android:text="@string/track_placeholder"/>
+        android:id="@+id/track_name"/>
     <!-- the playing status bar -->
     <!-- the icons for previous, pause, and skip -->
 </LinearLayout>

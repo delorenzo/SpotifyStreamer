@@ -13,38 +13,40 @@ public class TrackContent implements Parcelable {
     private String trackName;
     private String spotifyId;
     private String thumbnailURL;
+    private String uriString;
+    private String artistName;
 
-    public TrackContent (String album, String track, String id, String thumbnail) {
+    public TrackContent (String album, String track, String id, String thumbnail, String uri,
+                         String artist) {
         albumName = album;
         trackName = track;
         spotifyId = id;
         thumbnailURL = thumbnail;
+        uriString = uri;
+        artistName = artist;
     }
 
-    public String getAlbumName() {return albumName; }
+    public String getAlbumName() { return albumName; }
 
-    public String getSpotifyId()
-    {
-        return spotifyId;
-    }
+    public String getSpotifyId() { return spotifyId; }
 
-    public String getTrackName()
-    {
-        return trackName;
-    }
+    public String getTrackName() { return trackName; }
 
-    public String getThumbnailURL()
-    {
-        return thumbnailURL;
-    }
+    public String getThumbnailURL() {return thumbnailURL; }
 
     public Boolean hasThumbnail() { return !thumbnailURL.isEmpty(); }
+
+    public String getUriString() { return uriString;  }
+
+    public String getArtistName() { return artistName; }
 
     protected TrackContent(Parcel in) {
         albumName = in.readString();
         trackName = in.readString();
         spotifyId = in.readString();
         thumbnailURL = in.readString();
+        uriString = in.readString();
+        artistName = in.readString();
     }
 
     @Override
@@ -58,6 +60,8 @@ public class TrackContent implements Parcelable {
         dest.writeString(trackName);
         dest.writeString(spotifyId);
         dest.writeString(thumbnailURL);
+        dest.writeString(uriString);
+        dest.writeString(artistName);
     }
 
     @SuppressWarnings("unused")

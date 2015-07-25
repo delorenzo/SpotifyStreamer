@@ -53,10 +53,16 @@ public class TrackArrayAdapter extends ArrayAdapter<TrackContent> {
 
         //populate the data into the view
         if (track.hasThumbnail()) {
-            Picasso.with(getContext()).load(track.getThumbnailURL()).into(viewHolder.thumbnailImage);
+            Picasso.with(getContext())
+                    .load(track.getThumbnailURL())
+                    .resize(100, 100)
+                    .centerCrop()
+                    .into(viewHolder.thumbnailImage);
         }
         else {
-            Picasso.with(getContext()).load(R.mipmap.ic_launcher).into(viewHolder.thumbnailImage);
+            Picasso.with(getContext())
+                    .load(R.mipmap.ic_launcher)
+                    .into(viewHolder.thumbnailImage);
         }
         viewHolder.albumName.setText(track.getAlbumName());
         viewHolder.trackName.setText(track.getTrackName());

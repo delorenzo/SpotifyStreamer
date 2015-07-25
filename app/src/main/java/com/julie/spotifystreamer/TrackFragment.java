@@ -122,7 +122,7 @@ public class TrackFragment extends Fragment implements AbsListView.OnItemClickLi
             // Notify the active callbacks interface (the activity, if the
             // fragment is attached to one) that an item has been selected.
             TrackContent track = mAdapter.getItem(position);
-            mListener.onTrackSelected(track.getSpotifyId());
+            mListener.onTrackSelected(track);
         }
     }
 
@@ -188,7 +188,7 @@ public class TrackFragment extends Fragment implements AbsListView.OnItemClickLi
      * >Communicating with Other Fragments</a> for more information.
      */
     public interface OnTrackSelectedListener {
-        void onTrackSelected(String spotifyId);
+        void onTrackSelected(TrackContent track);
     }
 
     private class RetrieveTrackTask extends AsyncTask<String, Void, ArrayList<TrackContent>> {
@@ -217,7 +217,7 @@ public class TrackFragment extends Fragment implements AbsListView.OnItemClickLi
                         //in decreasing size order, to save data
                         thumbnailURL = t.album.images.get(t.album.images.size() - 1).url;
                     }
-                    mTrackList.add(new TrackContent(t.album.name, t.name, t.id, thumbnailURL));
+                    mTrackList.add(new TrackContent(t.album.name, t.name, t.id, thumbnailURL, t.uri, mArtist));
                 }
                 return mTrackList;
             } catch(RetrofitError e) {

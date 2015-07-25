@@ -55,10 +55,16 @@ public class ArtistArrayAdapter extends ArrayAdapter<ArtistContent> {
 
         //Populate the data into the view
         if (artist.hasThumbnail()) {
-            Picasso.with(getContext()).load(artist.getThumbnailURL()).into(viewHolder.thumbnailImage);
+            Picasso.with(getContext())
+                    .load(artist.getThumbnailURL())
+                    .resize(100, 100)
+                    .centerCrop()
+                    .into(viewHolder.thumbnailImage);
         }
         else {
-            Picasso.with(getContext()).load(R.mipmap.ic_launcher).into(viewHolder.thumbnailImage);
+            Picasso.with(getContext())
+                    .load(R.mipmap.ic_launcher)
+                    .into(viewHolder.thumbnailImage);
         }
         viewHolder.artistName.setText(artist.getName());
 

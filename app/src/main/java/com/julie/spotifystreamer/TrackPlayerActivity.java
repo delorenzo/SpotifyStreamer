@@ -13,6 +13,16 @@ public class TrackPlayerActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_track_player);
+
+        if (savedInstanceState == null) {
+            TrackContent content = getIntent().getParcelableExtra(ARG_TRACK);
+            TrackPlayerFragment fragment = (TrackPlayerFragment) TrackPlayerFragment.newInstance(content);
+
+            getSupportFragmentManager()
+                    .beginTransaction()
+                    .add(R.id.player_container, fragment)
+                    .commit();
+        }
     }
 
     @Override

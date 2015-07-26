@@ -30,6 +30,7 @@
             android:label="@string/title_activity_track_player"
             android:theme="@style/PlayerTheme">
         </activity>
+        <service android:name=".MediaPlayerService" android:enabled="true" />
         <receiver android:name=".RemoteControlReceiver">
             <intent-filter>
                 <action android:name="android.intent.action.MEDIA_BUTTON" />

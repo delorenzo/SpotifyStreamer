@@ -1,5 +1,6 @@
 package com.julie.spotifystreamer;
 
+import android.content.Intent;
 import android.media.AudioManager;
 import android.media.MediaPlayer;
 import android.net.Uri;

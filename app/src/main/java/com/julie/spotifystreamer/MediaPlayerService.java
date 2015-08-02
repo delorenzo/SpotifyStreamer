@@ -11,6 +11,7 @@ import android.media.AudioManager;
 import android.media.MediaPlayer;
 import android.net.Uri;
 import android.net.wifi.WifiManager;
+import android.os.Binder;
 import android.os.IBinder;
 import android.os.PowerManager;
 import android.support.v4.app.NotificationCompat;
@@ -31,14 +32,15 @@ public class MediaPlayerService extends Service implements MediaPlayer.OnPrepare
     private static final String ACTION_PLAY = "com.julie.spotifystreamer.action.PLAY";
     private static final String LOG_TAG = MediaPlayerService.class.getSimpleName();
     private static final String WIFI_LOCK_TAG = "mediaPlayerWifiLock";
-    public static final String ARG_SONG_NAME = "songName";
+    public static final String ARG_TRACK_NAME = "songName";
     public static final String ARG_URI = "uri";
     private static final int mNotificationId = 1;
 
     MediaPlayer mMediaPlayer = null;
     private String mUriString;
-    private String mSongName;
+    private String mTrackName;
     private WifiManager.WifiLock mWifiLock;
+    private final IBinder mBinder = new MediaPlayerBinder();
 
     @Override
     public void onAudioFocusChange(int focusChange) {
@@ -64,7 +66,7 @@ public class MediaPlayerService extends Service implements MediaPlayer.OnPrepare
     public int onStartCommand(Intent intent, int flags, int startId) {
         if (intent.getAction().equals(ACTION_PLAY)) {
             mUriString = intent.getStringExtra(ARG_URI);
-            mSongName = intent.getStringExtra(ARG_SONG_NAME);
+            mTrackName = intent.getStringExtra(ARG_TRACK_NAME);
 
             AudioManager audioManager = (AudioManager) getSystemService(Context.AUDIO_SERVICE);
             int result = audioManager.requestAudioFocus(this, AudioManager.STREAM_MUSIC,
@@ -90,7 +92,7 @@ public class MediaPlayerService extends Service implements MediaPlayer.OnPrepare
                 new NotificationCompat.Builder(getApplicationContext())
                 .setContentTitle("Now playing:  ")
                 .setSmallIcon(R.drawable.ic_queue_music_black_24dp)
-                .setContentText(mSongName)
+                .setContentText(mTrackName)
                 .setContentIntent(pendingIntent);
         Notification notification = mBuilder.build();
 
@@ -106,7 +108,10 @@ public class MediaPlayerService extends Service implements MediaPlayer.OnPrepare
 
     @Override
     public void onCompletion(MediaPlayer mp) {
-
+        mMediaPlayer.reset();
+        mMediaPlayer.release();
+        mMediaPlayer = null;
+        stopSelf();
     }
 
     private void initMediaPlayer() {
@@ -165,9 +170,10 @@ public class MediaPlayerService extends Service implements MediaPlayer.OnPrepare
         mp.start();
     }
 
+    //binder given to clients of the service
     @Override
     public IBinder onBind(Intent intent) {
-        return null;
+        return mBinder;
     }
 
     //https://stackoverflow.com/questions/17731527/how-to-implement-a-mediaplayer-restart-on-errors-in-android
@@ -184,5 +190,12 @@ public class MediaPlayerService extends Service implements MediaPlayer.OnPrepare
         mp.reset();
         initMediaPlayer();
         return true;
+    }
+
+    //Class used for the client binder, allowing clients to call public methods.
+    public class MediaPlayerBinder extends Binder {
+        MediaPlayerService getService() {
+            return MediaPlayerService.this;
+        }
     }
 }

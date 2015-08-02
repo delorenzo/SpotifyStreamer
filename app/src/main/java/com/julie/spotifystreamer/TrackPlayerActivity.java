@@ -1,13 +1,25 @@
 package com.julie.spotifystreamer;
 
+import android.content.ComponentName;
+import android.content.Context;
+import android.content.Intent;
+import android.content.ServiceConnection;
 import android.os.Bundle;
+import android.os.IBinder;
 import android.support.v7.app.AppCompatActivity;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 
 public class TrackPlayerActivity extends AppCompatActivity {
 
     public static final String ARG_TRACK = "track";
+    private static final String LOG_TAG = TrackPlayerActivity.class.getSimpleName();
+    private boolean mBound = false;
+    //the mediaplayerservice lives here so that its lifetime isn't linked to the lifetime
+    //of the fragment.
+    private MediaPlayerService mService;
+    private TrackContent mTrackContent;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -15,9 +27,13 @@ public class TrackPlayerActivity extends AppCompatActivity {
         setContentView(R.layout.activity_track_player);
 
         if (savedInstanceState == null) {
-            TrackContent content = getIntent().getParcelableExtra(ARG_TRACK);
-            TrackPlayerFragment fragment = (TrackPlayerFragment) TrackPlayerFragment.newInstance(content);
-
+            mTrackContent = getIntent().getParcelableExtra(ARG_TRACK);
+            
+            //bind music player service
+            Intent intent = new Intent(this, MediaPlayerService.class);
+            bindService(intent, mConnection, Context.BIND_AUTO_CREATE);
+            
+            TrackPlayerFragment fragment = (TrackPlayerFragment) TrackPlayerFragment.newInstance(mTrackContent);
             getSupportFragmentManager()
                     .beginTransaction()
                     .add(R.id.player_container, fragment)
@@ -30,6 +46,20 @@ public class TrackPlayerActivity extends AppCompatActivity {
         super.onStart();
     }
 
+    @Override
+    protected void onStop() {
+        super.onStop();
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        if (mBound) {
+            mService.onStop();
+            unbindService(mConnection);
+            mBound = false;
+        }
+    }
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
@@ -52,4 +82,35 @@ public class TrackPlayerActivity extends AppCompatActivity {
 
         return super.onOptionsItemSelected(item);
     }
+
+    //from https://developer.android.com/guide/components/bound-services.html
+    /** Defines callbacks for service binding, passed to bindService() */
+    private ServiceConnection mConnection = new ServiceConnection() {
+
+        @Override
+        public void onServiceConnected(ComponentName className,
+                                       IBinder service) {
+            // bind to the MediaPlayerService and get the instance of MediaPlayerService
+            MediaPlayerService.MediaPlayerBinder binder = (MediaPlayerService.MediaPlayerBinder) service;
+            mService = binder.getService();
+            mBound = true;
+
+            //start music player
+            if (mService != null) {
+                Intent playIntent = new Intent(getParent(), MediaPlayerService.class);
+                playIntent.putExtra(MediaPlayerService.ARG_URI, mTrackContent.getUriString());
+                playIntent.putExtra(MediaPlayerService.ARG_TRACK_NAME, mTrackContent.getTrackName());
+                mService.onStartCommand(playIntent, 0, 0);
+            }
+            else {
+                Log.e(LOG_TAG, "Failed to connect to service.");
+            }
+        }
+
+        @Override
+        public void onServiceDisconnected(ComponentName arg0) {
+            Log.e(LOG_TAG, "Service disconnected unexpectedly");
+            mBound = false;
+        }
+    };
 }

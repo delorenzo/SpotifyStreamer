@@ -1,9 +1,13 @@
 package com.julie.spotifystreamer;
 
+import android.content.ComponentName;
+import android.content.Context;
 import android.content.Intent;
+import android.content.ServiceConnection;
 import android.media.AudioManager;
 import android.media.MediaPlayer;
 import android.net.Uri;
+import android.os.IBinder;
 import android.support.v4.app.Fragment;
 import android.os.Bundle;
 import android.util.Log;
@@ -22,11 +26,10 @@ import java.io.IOException;
 //see https://developer.android.com/guide/topics/media/mediaplayer.html
 //and https://developer.android.com/reference/android/media/MediaPlayer.html
 
-public class TrackPlayerFragment extends Fragment implements MediaPlayer.OnPreparedListener {
+public class TrackPlayerFragment extends Fragment {
     private static final String LOG_TAG = TrackPlayerFragment.class.getSimpleName();
     private static final String ARG_TRACK = "track";
     private TrackContent mTrackContent;
-    private MediaPlayer mMediaPlayer;
 
     public TrackPlayerFragment() {
     }
@@ -41,27 +44,11 @@ public class TrackPlayerFragment extends Fragment implements MediaPlayer.OnPrepa
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
+        //obtain arguments
         super.onCreate(savedInstanceState);
         if (getArguments() != null) {
             mTrackContent = getArguments().getParcelable(ARG_TRACK);
-        }
-//        mMediaPlayer = new MediaPlayer();
-//        mMediaPlayer.setOnPreparedListener(this);
-//        mMediaPlayer.setAudioStreamType(AudioManager.STREAM_MUSIC);
-//        Uri musicUri = Uri.parse(mTrackContent.getUriString());
-//        try {
-//            mMediaPlayer.setDataSource(getActivity(), musicUri);
-//            mMediaPlayer.prepareAsync();
-//        } catch (IllegalArgumentException e) {
-//            Log.e(LOG_TAG, "Illegal argument to MediaPlayer setDataSource() :  " + e.getMessage());
-//        } catch (IOException e) {
-//            Log.e(LOG_TAG, "IOException on MediaPlayer setDataSource():  " + e.getMessage());
-//        }
-    }
-
-    @Override
-    public void onPrepared(MediaPlayer mp) {
-        mp.start();
+        };
     }
 
     @Override
@@ -107,4 +94,10 @@ public class TrackPlayerFragment extends Fragment implements MediaPlayer.OnPrepa
             mTrackContent = savedInstanceState.getParcelable(ARG_TRACK);
         }
     }
+
+    @Override
+    public void onStop() {
+        super.onStop();
+    }
+
 }

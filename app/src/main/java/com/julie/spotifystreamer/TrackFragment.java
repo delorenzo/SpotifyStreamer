@@ -220,7 +220,7 @@ public class TrackFragment extends Fragment implements AbsListView.OnItemClickLi
                         //in decreasing size order, to save data
                         thumbnailURL = t.album.images.get(t.album.images.size() - 1).url;
                     }
-                    mTrackList.add(new TrackContent(t.album.name, t.name, t.id, thumbnailURL, t.uri, mArtist));
+                    mTrackList.add(new TrackContent(t.album.name, t.name, t.id, thumbnailURL, t.preview_url, mArtist));
                 }
                 return mTrackList;
             } catch(RetrofitError e) {

@@ -33,7 +33,7 @@ public class TrackPlayerActivity extends AppCompatActivity {
             
             //start music player service
             Intent playIntent = new Intent(this, MediaPlayerService.class);
-            playIntent.putExtra(MediaPlayerService.ARG_URI, mTrackContent.getUriString());
+            playIntent.putExtra(MediaPlayerService.ARG_URI, mTrackContent.getPreviewURL());
             playIntent.putExtra(MediaPlayerService.ARG_TRACK_NAME, mTrackContent.getTrackName());
             playIntent.setAction(MediaPlayerService.ACTION_PLAY);
             startService(playIntent);

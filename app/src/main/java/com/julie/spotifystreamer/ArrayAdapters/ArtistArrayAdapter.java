@@ -1,8 +1,6 @@
-package com.julie.spotifystreamer;
+package com.julie.spotifystreamer.ArrayAdapters;
 
 import android.content.Context;
-import android.media.Image;
-import android.net.Uri;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -10,13 +8,11 @@ import android.widget.ArrayAdapter;
 import android.widget.ImageView;
 import android.widget.TextView;
 
+import com.julie.spotifystreamer.DataContent.ArtistContent;
+import com.julie.spotifystreamer.R;
 import com.squareup.picasso.Picasso;
 
-import java.net.URL;
 import java.util.ArrayList;
-import java.util.List;
-
-import kaaes.spotify.webapi.android.models.Artist;
 
 /**
  * Custom ArrayAdapter that returns the view for the artist list item.

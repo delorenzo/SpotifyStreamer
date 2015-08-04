@@ -16,6 +16,9 @@ import android.widget.AdapterView;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.julie.spotifystreamer.ArrayAdapters.ArtistArrayAdapter;
+import com.julie.spotifystreamer.DataContent.ArtistContent;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -128,7 +131,7 @@ public class ArtistFragment extends Fragment implements AbsListView.OnItemClickL
 
         //if the list is not empty, we're restoring from a previous state, so
         //update the adapter and return.
-        if (!mArtistList.isEmpty()) {
+        if (mArtistList != null && !mArtistList.isEmpty()) {
             mAdapter.clear();
             mAdapter.addAll(mArtistList);
             return;
@@ -136,7 +139,7 @@ public class ArtistFragment extends Fragment implements AbsListView.OnItemClickL
 
         //only make the API call if the query is non-null and non-empty.
         //otherwise, set the empty text.
-        if (searchQueryExists() && mArtistList.isEmpty()) {
+        if (searchQueryExists()) {
             new RetrieveArtistTask(getActivity()).execute(mSearchQuery);
         }
         else {

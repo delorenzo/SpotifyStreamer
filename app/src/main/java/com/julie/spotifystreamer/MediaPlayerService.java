@@ -4,7 +4,6 @@ import android.app.Notification;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.app.Service;
-import android.app.TaskStackBuilder;
 import android.content.Context;
 import android.content.Intent;
 import android.media.AudioManager;
@@ -29,19 +28,26 @@ public class MediaPlayerService extends Service implements MediaPlayer.OnPrepare
         MediaPlayer.OnErrorListener, MediaPlayer.OnCompletionListener,
         AudioManager.OnAudioFocusChangeListener{
 
-    private static final String ACTION_PLAY = "com.julie.spotifystreamer.action.PLAY";
-    private static final String LOG_TAG = MediaPlayerService.class.getSimpleName();
-    private static final String WIFI_LOCK_TAG = "mediaPlayerWifiLock";
+    //public constants
+    public static final String ACTION_PLAY = "com.julie.spotifystreamer.action.PLAY";
+    public static final String ACTION_STOP = "com.julie.spotifystreamer.action.STOP";
     public static final String ARG_TRACK_NAME = "songName";
     public static final String ARG_URI = "uri";
+
+    //private constants
+    private static final String LOG_TAG = MediaPlayerService.class.getSimpleName();
+    private static final String WIFI_LOCK_TAG = "mediaPlayerWifiLock";
     private static final int mNotificationId = 1;
 
-    MediaPlayer mMediaPlayer = null;
+    //private internals
+    private MediaPlayer mMediaPlayer = null;
     private String mUriString;
     private String mTrackName;
     private WifiManager.WifiLock mWifiLock;
     private final IBinder mBinder = new MediaPlayerBinder();
+    private AudioManager mAudioManager;
 
+    //handle audio focus changes by pausing/resuming/adjusting audio as is appropriate
     @Override
     public void onAudioFocusChange(int focusChange) {
         switch (focusChange) {
@@ -49,27 +55,31 @@ public class MediaPlayerService extends Service implements MediaPlayer.OnPrepare
                 if (mMediaPlayer == null) {
                     initMediaPlayer();
                 }
-                else if (!mMediaPlayer.isPlaying()) {
-                    mMediaPlayer.start();
-                }
+                onResume();
                 mMediaPlayer.setVolume(1.0f, 1.0f);
                 break;
             case AudioManager.AUDIOFOCUS_LOSS:
+                onStop();
                 break;
             case AudioManager.AUDIOFOCUS_LOSS_TRANSIENT:
+                onPause();
                 break;
             case AudioManager.AUDIOFOCUS_LOSS_TRANSIENT_CAN_DUCK:
+                if (mMediaPlayer.isPlaying()) {
+                    mMediaPlayer.setVolume(0.1f, 0.1f);
+                }
                 break;
         }
     }
 
+    // The service is starting, due to a call to startService()
     public int onStartCommand(Intent intent, int flags, int startId) {
         if (intent.getAction().equals(ACTION_PLAY)) {
             mUriString = intent.getStringExtra(ARG_URI);
             mTrackName = intent.getStringExtra(ARG_TRACK_NAME);
 
-            AudioManager audioManager = (AudioManager) getSystemService(Context.AUDIO_SERVICE);
-            int result = audioManager.requestAudioFocus(this, AudioManager.STREAM_MUSIC,
+            mAudioManager = (AudioManager) getSystemService(Context.AUDIO_SERVICE);
+            int result = mAudioManager.requestAudioFocus(this, AudioManager.STREAM_MUSIC,
                     AudioManager.AUDIOFOCUS_GAIN);
             if (result != AudioManager.AUDIOFOCUS_REQUEST_GRANTED) {
                 Log.e(LOG_TAG, "Audio focus request was denied.  Media player will not be started.");
@@ -77,13 +87,19 @@ public class MediaPlayerService extends Service implements MediaPlayer.OnPrepare
             }
 
             initMediaPlayer();
-            startNotification();
+            initNotification();
+        }
+        else if (intent.getAction().equals(ACTION_STOP)) {
+            onStop();
+        }
+        else {
+            Log.e(LOG_TAG, "Unrecognized intent action called for:  " + intent.getAction());
         }
         return 0;
     }
 
     //make the service a foreground service by creating a notification for the status bar.
-    private void startNotification() {
+    private void initNotification() {
         PendingIntent pendingIntent = PendingIntent.getActivity(getApplicationContext(), 0,
                 new Intent(getApplicationContext(), TrackPlayerActivity.class),
                 PendingIntent.FLAG_UPDATE_CURRENT);
@@ -102,10 +118,7 @@ public class MediaPlayerService extends Service implements MediaPlayer.OnPrepare
         startForeground(mNotificationId, notification);
     }
 
-    private void updateNotificationWithText(String msg) {
-
-    }
-
+    //the media player has completed playback.  release resources
     @Override
     public void onCompletion(MediaPlayer mp) {
         mMediaPlayer.reset();
@@ -114,6 +127,7 @@ public class MediaPlayerService extends Service implements MediaPlayer.OnPrepare
         stopSelf();
     }
 
+    //initialize the media player
     private void initMediaPlayer() {
         mMediaPlayer = new MediaPlayer();
         setListeners();
@@ -133,28 +147,35 @@ public class MediaPlayerService extends Service implements MediaPlayer.OnPrepare
         }
     }
 
+    //pause - transient audio focus loss
     public void onPause()
     {
         mMediaPlayer.pause();
         releaseWifiLock();
     }
 
+    //stop - indetermined audio focus loss.  release resources
     public void onStop()
     {
-        mMediaPlayer.stop();
+        if (mMediaPlayer.isPlaying()) {
+            mMediaPlayer.stop();
+        }
         mMediaPlayer.release();
         mMediaPlayer = null;
         releaseWifiLock();
         stopForeground(true);
+        stopSelf();
     }
 
+    //resume - recover from from transient audio focus loss
     public void onResume()
     {
-        mMediaPlayer.start();
+        if (!mMediaPlayer.isPlaying()) {
+            mMediaPlayer.start();
+        }
     }
 
-    private void releaseWifiLock()
-    {
+    private void releaseWifiLock() {
         mWifiLock.release();
         mWifiLock = null;
     }
@@ -170,7 +191,12 @@ public class MediaPlayerService extends Service implements MediaPlayer.OnPrepare
         mp.start();
     }
 
-    //binder given to clients of the service
+    @Override
+    public void onDestroy() {
+        onStop();
+    }
+
+    // A client is binding to the service with bindService()
     @Override
     public IBinder onBind(Intent intent) {
         return mBinder;

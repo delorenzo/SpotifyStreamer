@@ -11,6 +11,8 @@ import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 
+import com.julie.spotifystreamer.DataContent.TrackContent;
+
 public class TrackPlayerActivity extends AppCompatActivity {
 
     public static final String ARG_TRACK = "track";
@@ -29,11 +31,17 @@ public class TrackPlayerActivity extends AppCompatActivity {
         if (savedInstanceState == null) {
             mTrackContent = getIntent().getParcelableExtra(ARG_TRACK);
             
-            //bind music player service
-            Intent intent = new Intent(this, MediaPlayerService.class);
-            bindService(intent, mConnection, Context.BIND_AUTO_CREATE);
+            //start music player service
+            Intent playIntent = new Intent(this, MediaPlayerService.class);
+            playIntent.putExtra(MediaPlayerService.ARG_URI, mTrackContent.getUriString());
+            playIntent.putExtra(MediaPlayerService.ARG_TRACK_NAME, mTrackContent.getTrackName());
+            playIntent.setAction(MediaPlayerService.ACTION_PLAY);
+            startService(playIntent);
+
+            //bind to service so the user can impact playback
+            bindService(playIntent, mConnection, Context.BIND_AUTO_CREATE);
             
-            TrackPlayerFragment fragment = (TrackPlayerFragment) TrackPlayerFragment.newInstance(mTrackContent);
+            TrackPlayerFragment fragment = TrackPlayerFragment.newInstance(mTrackContent);
             getSupportFragmentManager()
                     .beginTransaction()
                     .add(R.id.player_container, fragment)
@@ -94,17 +102,6 @@ public class TrackPlayerActivity extends AppCompatActivity {
             MediaPlayerService.MediaPlayerBinder binder = (MediaPlayerService.MediaPlayerBinder) service;
             mService = binder.getService();
             mBound = true;
-
-            //start music player
-            if (mService != null) {
-                Intent playIntent = new Intent(getParent(), MediaPlayerService.class);
-                playIntent.putExtra(MediaPlayerService.ARG_URI, mTrackContent.getUriString());
-                playIntent.putExtra(MediaPlayerService.ARG_TRACK_NAME, mTrackContent.getTrackName());
-                mService.onStartCommand(playIntent, 0, 0);
-            }
-            else {
-                Log.e(LOG_TAG, "Failed to connect to service.");
-            }
         }
 
         @Override

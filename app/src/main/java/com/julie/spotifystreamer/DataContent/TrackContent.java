@@ -1,4 +1,4 @@
-package com.julie.spotifystreamer;
+package com.julie.spotifystreamer.DataContent;
 
 import android.os.Parcel;
 import android.os.Parcelable;

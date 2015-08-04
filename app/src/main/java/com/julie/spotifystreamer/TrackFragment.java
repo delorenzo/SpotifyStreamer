@@ -16,6 +16,9 @@ import android.widget.AdapterView;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.julie.spotifystreamer.ArrayAdapters.TrackArrayAdapter;
+import com.julie.spotifystreamer.DataContent.TrackContent;
+
 import java.util.ArrayList;
 import java.util.Hashtable;
 

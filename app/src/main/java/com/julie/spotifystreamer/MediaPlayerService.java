@@ -132,11 +132,15 @@ public class MediaPlayerService extends Service implements MediaPlayer.OnPrepare
         mMediaPlayer = new MediaPlayer();
         setListeners();
         mMediaPlayer.setAudioStreamType(AudioManager.STREAM_MUSIC);
+        
+        //acquire CPU lock to ensure playback is not interrupted
         mMediaPlayer.setWakeMode(getApplicationContext(), PowerManager.PARTIAL_WAKE_LOCK);
-        mWifiLock = ((WifiManager) getSystemService(Context.WIFI_SERVICE))
-                .createWifiLock(WifiManager.WIFI_MODE_FULL, WIFI_LOCK_TAG);
-        mWifiLock.acquire();
+        
+        //acquire wifi lock to ensure playback is not interrupted
+        acquireWifiLock();
+        
         Uri musicUri = Uri.parse(mUriString);
+        //setDataSoruce has the potential to throw IllegalArgumentException or IOException
         try {
             mMediaPlayer.setDataSource(this, musicUri);
             mMediaPlayer.prepareAsync();
@@ -148,21 +152,23 @@ public class MediaPlayerService extends Service implements MediaPlayer.OnPrepare
     }
 
     //pause - transient audio focus loss
+    //note we need to release the wifi lock and not the cpu lock because the MediaPlayer will handle that for us.
     public void onPause()
     {
         mMediaPlayer.pause();
         releaseWifiLock();
     }
 
-    //stop - indetermined audio focus loss.  release resources
+    //stop - indetermined length of audio focus loss.  release resources
+    //note we need to release the wifi lock and not the cpu lock because the MediaPlayer will handle that for us.
     public void onStop()
     {
         if (mMediaPlayer.isPlaying()) {
             mMediaPlayer.stop();
         }
+        releaseWifiLock();
         mMediaPlayer.release();
         mMediaPlayer = null;
-        releaseWifiLock();
         stopForeground(true);
         stopSelf();
     }
@@ -170,27 +176,43 @@ public class MediaPlayerService extends Service implements MediaPlayer.OnPrepare
     //resume - recover from from transient audio focus loss
     public void onResume()
     {
+        acquireWifiLock();
         if (!mMediaPlayer.isPlaying()) {
             mMediaPlayer.start();
         }
     }
 
+    //release the wifi lock
     private void releaseWifiLock() {
         mWifiLock.release();
         mWifiLock = null;
     }
+    
+    //acquire the wifi lock
+    private void acquireWifiLock() {
+        mWifiLock = ((WifiManager) getSystemService(Context.WIFI_SERVICE))
+                .createWifiLock(WifiManager.WIFI_MODE_FULL, WIFI_LOCK_TAG);
+        mWifiLock.acquire();
+    }
 
+    /* set listeners for the media player:
+    on prepared is called when playback is ready,
+    on completion is called when playback is complete,
+    on error allows us to recover from the error state by resetting the player.
+    */
     private void setListeners() {
         mMediaPlayer.setOnPreparedListener(this);
         mMediaPlayer.setOnCompletionListener(this);
         mMediaPlayer.setOnErrorListener(this);
     }
 
+    //the media player is prepared to start.
     @Override
     public void onPrepared(MediaPlayer mp) {
         mp.start();
     }
 
+    //the service is being destroyed.  release resources
     @Override
     public void onDestroy() {
         onStop();

@@ -10,6 +10,8 @@ import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.View;
+import android.widget.ImageButton;
 
 import com.julie.spotifystreamer.DataContent.TrackContent;
 
@@ -22,6 +24,17 @@ public class TrackPlayerActivity extends AppCompatActivity {
     //of the fragment.
     private MediaPlayerService mService;
     private TrackContent mTrackContent;
+    private ViewHolder viewHolder;
+    private int progress = 0;
+
+    private static class ViewHolder {
+        ImageButton pauseButton;
+        ImageButton resumeButton;
+        public ViewHolder(View view) {
+            pauseButton = (ImageButton)view.findViewById(R.id.button_pause);
+            resumeButton = (ImageButton)view.findViewById(R.id.button_play);
+        }
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -29,6 +42,8 @@ public class TrackPlayerActivity extends AppCompatActivity {
         setContentView(R.layout.activity_track_player);
 
         if (savedInstanceState == null) {
+            //this should prevent the TrackContent class not being found when unmarshalling
+            getIntent().getExtras().setClassLoader(TrackContent.class.getClassLoader());
             mTrackContent = getIntent().getParcelableExtra(ARG_TRACK);
             
             //start music player service
@@ -42,6 +57,7 @@ public class TrackPlayerActivity extends AppCompatActivity {
             bindService(playIntent, mConnection, Context.BIND_AUTO_CREATE);
             
             TrackPlayerFragment fragment = TrackPlayerFragment.newInstance(mTrackContent);
+
             getSupportFragmentManager()
                     .beginTransaction()
                     .add(R.id.player_container, fragment)
@@ -110,4 +126,47 @@ public class TrackPlayerActivity extends AppCompatActivity {
             mBound = false;
         }
     };
+
+
+    public void pausePlayer(View view) {
+
+        if (mService != null) {
+            mService.onPause();
+        }
+        if (viewHolder == null) {
+            viewHolder = new ViewHolder(view);
+        }
+        //swap the resume and pause buttons
+        viewHolder.pauseButton.setVisibility(View.GONE);
+        viewHolder.resumeButton.setVisibility(View.VISIBLE);
+    }
+
+    public void resumePlayer(View view) {
+        if (mService != null) {
+            mService.onResume();
+        }
+        if (viewHolder == null) {
+            viewHolder = new ViewHolder(view);
+        }
+        //swap the resume and pause buttons
+        viewHolder.resumeButton.setVisibility(View.GONE);
+        viewHolder.pauseButton.setVisibility(View.VISIBLE);
+    }
+
+    public void skipNextPlayer(View view) {
+        //TODO:  implement skip next
+    }
+
+    public void skipPreviousPlayer(View view) {
+        //TODO: implement skip previous
+    }
+
+//    Runnable run  = new Runnable()
+//    {
+//        @Override
+//        public void run()
+//        {
+//            updateProgressBar();
+//        }
+//    };
 }

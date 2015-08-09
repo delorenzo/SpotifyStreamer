@@ -216,9 +216,9 @@ public class TrackFragment extends Fragment implements AbsListView.OnItemClickLi
                 for (Track t : tracks.tracks) {
                     String thumbnailURL = "";
                     if (!t.album.images.isEmpty()) {
-                        //return the last image in the list because they are ordered
-                        //in decreasing size order, to save data
-                        thumbnailURL = t.album.images.get(t.album.images.size() - 1).url;
+                        //because the track image is also used for the track player view,
+                        //pull back the largest image so the track player will display properly.
+                        thumbnailURL = t.album.images.get(0).url;
                     }
                     mTrackList.add(new TrackContent(t.album.name, t.name, t.id, thumbnailURL, t.preview_url, mArtist));
                 }

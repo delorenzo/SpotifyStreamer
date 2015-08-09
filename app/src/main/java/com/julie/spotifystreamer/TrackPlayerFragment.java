@@ -65,8 +65,8 @@ public class TrackPlayerFragment extends Fragment {
         ImageView trackImageView = (ImageView)view.findViewById(R.id.player_track_image);
         Picasso.with(getActivity())
                 .load(mTrackContent.getThumbnailURL())
-                .resize(200,200)
-                .centerCrop()
+//                .resize(200,200)
+//                .centerCrop()
                 .into(trackImageView);
 
         return view;

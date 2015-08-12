@@ -53,6 +53,7 @@ public class MediaPlayerService extends Service implements MediaPlayer.OnPrepare
     private final IBinder mBinder = new MediaPlayerBinder();
     private AudioManager mAudioManager;
     private NotificationCompat.Builder mNotificationBuilder;
+    private int duration = 0;
 
     //handle audio focus changes by pausing/resuming/adjusting audio as is appropriate
     @Override
@@ -105,7 +106,10 @@ public class MediaPlayerService extends Service implements MediaPlayer.OnPrepare
             //to change the data source on a media player you must call reset
             //because setDataSource() called in any other state throws an IllegalStateException
             case ACTION_CHANGE_TRACK:
-                mMediaPlayer.reset();
+                //if the media player exists it needs to be reset.
+                if (mMediaPlayer != null) {
+                    mMediaPlayer.reset();
+                }
                 mUriString = intent.getStringExtra(ARG_URI);
                 mTrackName = intent.getStringExtra(ARG_TRACK_NAME);
                 initMediaPlayer();
@@ -254,6 +258,7 @@ public class MediaPlayerService extends Service implements MediaPlayer.OnPrepare
     @Override
     public void onPrepared(MediaPlayer mp) {
         mp.start();
+        duration = mp.getDuration();
     }
 
     //the service is being destroyed.  release resources
@@ -302,6 +307,6 @@ public class MediaPlayerService extends Service implements MediaPlayer.OnPrepare
     //return duration of the media player
     public int getDuration()
     {
-        return mMediaPlayer != null ? mMediaPlayer.getDuration() : 0;
+        return duration;
     }
 }

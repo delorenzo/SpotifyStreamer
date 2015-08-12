@@ -166,8 +166,6 @@ public class TrackPlayerActivity extends AppCompatActivity {
     }
 
     public void skipNextPlayer(View view) {
-        //halt playback
-        mService.onPause();
         isPlaying = false;
         mCurrentPos = 0;
 
@@ -184,11 +182,10 @@ public class TrackPlayerActivity extends AppCompatActivity {
 
         //restart playback
         startMusicPlayerService(MediaPlayerService.ACTION_CHANGE_TRACK);
+        thread.start();
     }
 
     public void skipPreviousPlayer(View view) {
-        //stop current playback
-        mService.onPause();
         isPlaying = false;
         mCurrentPos = 0;
 
@@ -215,13 +212,30 @@ public class TrackPlayerActivity extends AppCompatActivity {
     {
         public void run()
         {
-            int duration = mService.getDuration();
+
+            //to get the player duration, the player has to be in an appropriate state, but
+            //the activity doesn't have a way to wait for the on prepared callback, so poll until
+            //the service gives a valid duration.
             TrackPlayerFragment fragment = (TrackPlayerFragment)getSupportFragmentManager().
                     findFragmentByTag(PLAYER_FRAGMENT_TAG);
+            int duration = mService.getDuration();
+            while (duration == 0) {
+                try {
+                    Thread.sleep(200);
+                    duration = mService.getDuration();
+                } catch (InterruptedException e) {
+                    Log.e(LOG_TAG, "Progress bar thread interrupted:  " + e.getMessage());
+                    return;
+                }
+            }
+
+            //setup the progress bar
             fragment.setupProgressBar(duration);
+
+            //update the progress bar as appropriate
             while (isPlaying && mCurrentPos < duration) {
                 try {
-                    Thread.sleep(1000);
+                    Thread.sleep(500);
                     mCurrentPos = mService.getCurrentPosition();
                     fragment.updateProgress(mCurrentPos);
                 } catch (InterruptedException e) {

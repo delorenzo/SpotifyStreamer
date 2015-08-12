@@ -40,7 +40,8 @@
         android:layout_marginBottom="16dp"
         style="@android:style/Widget.ProgressBar.Horizontal"
         android:progressTint="@color/spotify_green"
-        android:max="30"/>
+        android:maxHeight="5dp"
+        android:minHeight="5dp"/>
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"

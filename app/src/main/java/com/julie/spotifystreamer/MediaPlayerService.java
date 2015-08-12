@@ -16,13 +16,18 @@ import android.os.PowerManager;
 import android.support.v4.app.NotificationCompat;
 import android.util.Log;
 
+import com.julie.spotifystreamer.Receivers.RemoteControlReceiver;
+
 import java.io.IOException;
 
 /**
  * MediaPlayerService:
  * Extension of Service that handles playing the track
  * so that the track can continue to play in the background.
- * See https://developer.android.com/guide/topics/media/mediaplayer.html for details.
+ * See https://developer.android.com/guide/topics/media/mediaplayer.html
+ * and
+ * https://developer.android.com/reference/android/media/MediaPlayer.html
+ * for details.
  */
 public class MediaPlayerService extends Service implements MediaPlayer.OnPreparedListener,
         MediaPlayer.OnErrorListener, MediaPlayer.OnCompletionListener,
@@ -31,6 +36,7 @@ public class MediaPlayerService extends Service implements MediaPlayer.OnPrepare
     //public constants
     public static final String ACTION_PLAY = "com.julie.spotifystreamer.action.PLAY";
     public static final String ACTION_STOP = "com.julie.spotifystreamer.action.STOP";
+    public static final String ACTION_CHANGE_TRACK = "com.julie.spotifystreamer.action.CHANGE_TRACK";
     public static final String ARG_TRACK_NAME = "songName";
     public static final String ARG_URI = "uri";
 
@@ -46,6 +52,7 @@ public class MediaPlayerService extends Service implements MediaPlayer.OnPrepare
     private WifiManager.WifiLock mWifiLock;
     private final IBinder mBinder = new MediaPlayerBinder();
     private AudioManager mAudioManager;
+    private NotificationCompat.Builder mNotificationBuilder;
 
     //handle audio focus changes by pausing/resuming/adjusting audio as is appropriate
     @Override
@@ -74,26 +81,40 @@ public class MediaPlayerService extends Service implements MediaPlayer.OnPrepare
 
     // The service is starting, due to a call to startService()
     public int onStartCommand(Intent intent, int flags, int startId) {
-        if (intent.getAction().equals(ACTION_PLAY)) {
-            mUriString = intent.getStringExtra(ARG_URI);
-            mTrackName = intent.getStringExtra(ARG_TRACK_NAME);
+        switch (intent.getAction()) {
+            case ACTION_PLAY:
+                mUriString = intent.getStringExtra(ARG_URI);
+                mTrackName = intent.getStringExtra(ARG_TRACK_NAME);
 
-            mAudioManager = (AudioManager) getSystemService(Context.AUDIO_SERVICE);
-            int result = mAudioManager.requestAudioFocus(this, AudioManager.STREAM_MUSIC,
-                    AudioManager.AUDIOFOCUS_GAIN);
-            if (result != AudioManager.AUDIOFOCUS_REQUEST_GRANTED) {
-                Log.e(LOG_TAG, "Audio focus request was denied.  Media player will not be started.");
-                return -1;
-            }
+                mAudioManager = (AudioManager) getSystemService(Context.AUDIO_SERVICE);
+                int result = mAudioManager.requestAudioFocus(this, AudioManager.STREAM_MUSIC,
+                        AudioManager.AUDIOFOCUS_GAIN);
+                if (result != AudioManager.AUDIOFOCUS_REQUEST_GRANTED) {
+                    Log.e(LOG_TAG, "Audio focus request was denied.  Media player will not be started.");
+                    return -1;
+                }
 
-            initMediaPlayer();
-            initNotification();
-        }
-        else if (intent.getAction().equals(ACTION_STOP)) {
-            onStop();
-        }
-        else {
-            Log.e(LOG_TAG, "Unrecognized intent action called for:  " + intent.getAction());
+                initMediaPlayer();
+                initNotification();
+                break;
+
+            case ACTION_STOP:
+                onStop();
+                break;
+
+            //to change the data source on a media player you must call reset
+            //because setDataSource() called in any other state throws an IllegalStateException
+            case ACTION_CHANGE_TRACK:
+                mMediaPlayer.reset();
+                mUriString = intent.getStringExtra(ARG_URI);
+                mTrackName = intent.getStringExtra(ARG_TRACK_NAME);
+                initMediaPlayer();
+                updateNotification();
+                break;
+
+            default:
+                Log.e(LOG_TAG, "Unrecognized intent action called for:  " + intent.getAction());
+                break;
         }
         return 0;
     }
@@ -104,19 +125,27 @@ public class MediaPlayerService extends Service implements MediaPlayer.OnPrepare
                 new Intent(getApplicationContext(), TrackPlayerActivity.class),
                 PendingIntent.FLAG_UPDATE_CURRENT);
 
-        NotificationCompat.Builder mBuilder =
+        mNotificationBuilder =
                 new NotificationCompat.Builder(getApplicationContext())
-                .setContentTitle("Now playing:  ")
+                .setContentTitle(getString(R.string.now_playing))
                 .setSmallIcon(R.drawable.ic_queue_music_black_24dp)
                 .setContentText(mTrackName)
                 .setContentIntent(pendingIntent);
-        Notification notification = mBuilder.build();
+        Notification notification = mNotificationBuilder.build();
 
         NotificationManager mNotificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
         mNotificationManager.notify(mNotificationId, notification);
 
         startForeground(mNotificationId, notification);
     }
+
+    //update the notification with the appropriate track name
+    private void updateNotification() {
+        NotificationManager mNotificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+        mNotificationBuilder.setContentText(mTrackName);
+        mNotificationManager.notify(mNotificationId, mNotificationBuilder.build());
+    }
+
 
     //the media player has completed playback.  release resources
     @Override
@@ -129,7 +158,10 @@ public class MediaPlayerService extends Service implements MediaPlayer.OnPrepare
 
     //initialize the media player
     private void initMediaPlayer() {
-        mMediaPlayer = new MediaPlayer();
+        if (mMediaPlayer == null) {
+            mMediaPlayer = new MediaPlayer();
+        }
+
         setListeners();
         mMediaPlayer.setAudioStreamType(AudioManager.STREAM_MUSIC);
         
@@ -139,8 +171,13 @@ public class MediaPlayerService extends Service implements MediaPlayer.OnPrepare
         //acquire wifi lock to ensure playback is not interrupted
         acquireWifiLock();
         
+        setPlayerDataSource();
+    }
+
+    //parses the music URI from the URI String and attempts to set the data source.
+    private void setPlayerDataSource() {
         Uri musicUri = Uri.parse(mUriString);
-        //setDataSoruce has the potential to throw IllegalArgumentException or IOException
+        //setDataSource has the potential to throw IllegalArgumentException or IOException
         try {
             mMediaPlayer.setDataSource(this, musicUri);
             mMediaPlayer.prepareAsync();
@@ -148,6 +185,8 @@ public class MediaPlayerService extends Service implements MediaPlayer.OnPrepare
             Log.e(LOG_TAG, "Illegal argument to MediaPlayer setDataSource() :  " + e.getMessage());
         } catch (IOException e) {
             Log.e(LOG_TAG, "IOException on MediaPlayer setDataSource():  " + e.getMessage());
+        } catch (IllegalStateException e) {
+            Log.e(LOG_TAG, "Set data source called from invalid media player state:  " + e.getMessage());
         }
     }
 
@@ -163,12 +202,15 @@ public class MediaPlayerService extends Service implements MediaPlayer.OnPrepare
     //note we need to release the wifi lock and not the cpu lock because the MediaPlayer will handle that for us.
     public void onStop()
     {
-        if (mMediaPlayer.isPlaying()) {
-            mMediaPlayer.stop();
+        //sometimes onStop() is called with a media player that doesn't exist
+        if (mMediaPlayer != null) {
+            if (mMediaPlayer.isPlaying()) {
+                mMediaPlayer.stop();
+            }
+            mMediaPlayer.release();
+            mMediaPlayer = null;
         }
         releaseWifiLock();
-        mMediaPlayer.release();
-        mMediaPlayer = null;
         stopForeground(true);
         stopSelf();
     }
@@ -184,7 +226,9 @@ public class MediaPlayerService extends Service implements MediaPlayer.OnPrepare
 
     //release the wifi lock
     private void releaseWifiLock() {
-        mWifiLock.release();
+        if (mWifiLock != null) {
+            mWifiLock.release();
+        }
         mWifiLock = null;
     }
     
@@ -216,6 +260,8 @@ public class MediaPlayerService extends Service implements MediaPlayer.OnPrepare
     @Override
     public void onDestroy() {
         onStop();
+        NotificationManager mNotificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+        mNotificationManager.cancel(mNotificationId);
     }
 
     // A client is binding to the service with bindService()
@@ -245,5 +291,17 @@ public class MediaPlayerService extends Service implements MediaPlayer.OnPrepare
         MediaPlayerService getService() {
             return MediaPlayerService.this;
         }
+    }
+
+    //return current position of the media player
+    public int getCurrentPosition()
+    {
+        return mMediaPlayer != null ? mMediaPlayer.getCurrentPosition() : 0;
+    }
+
+    //return duration of the media player
+    public int getDuration()
+    {
+        return mMediaPlayer != null ? mMediaPlayer.getDuration() : 0;
     }
 }

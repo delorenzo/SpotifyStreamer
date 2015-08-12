@@ -13,6 +13,8 @@ import android.view.MenuItem;
 
 import com.julie.spotifystreamer.DataContent.TrackContent;
 
+import java.util.ArrayList;
+
 import kaaes.spotify.webapi.android.SpotifyApi;
 import kaaes.spotify.webapi.android.SpotifyService;
 
@@ -119,9 +121,10 @@ public class MainActivity extends AppCompatActivity implements ArtistFragment.On
         transaction.commit();
     }
 
-    public void onTrackSelected(TrackContent track) {
+    public void onTrackSelected(ArrayList<TrackContent> trackList, int position) {
         Intent intent = new Intent(this, TrackPlayerActivity.class);
-        intent.putExtra(TrackPlayerActivity.ARG_TRACK, track);
+        intent.putExtra(TrackPlayerActivity.ARG_POSITION, position);
+        intent.putExtra(TrackPlayerActivity.ARG_TRACK_LIST, trackList);
         startActivity(intent);
     }
 

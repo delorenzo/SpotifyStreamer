@@ -6,11 +6,16 @@ import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ImageButton;
 import android.widget.ImageView;
+import android.widget.ProgressBar;
 import android.widget.TextView;
 
 import com.julie.spotifystreamer.DataContent.TrackContent;
 import com.squareup.picasso.Picasso;
+
+import java.sql.Time;
+import java.util.concurrent.TimeUnit;
 
 
 //TrackPlayerFragment handles playing the selected track.
@@ -21,6 +26,9 @@ public class TrackPlayerFragment extends Fragment {
     private static final String LOG_TAG = TrackPlayerFragment.class.getSimpleName();
     private static final String ARG_TRACK = "track";
     private TrackContent mTrackContent;
+    private ImageButton mPauseButton;
+    private ImageButton mResumeButton;
+    private ProgressBar mProgressBar;
 
     public TrackPlayerFragment() {
     }
@@ -52,6 +60,17 @@ public class TrackPlayerFragment extends Fragment {
             return view;
         }
 
+        mProgressBar = (ProgressBar) view.findViewById(R.id.progress_bar);
+        mPauseButton = (ImageButton) view.findViewById(R.id.button_pause);
+        mResumeButton = (ImageButton) view.findViewById(R.id.button_play);
+
+        setupDisplayedTrack(view);
+
+        return view;
+    }
+
+    //set up the display from the current track
+    private void setupDisplayedTrack(View view) {
         //set up the basic display content
         TextView artistTextView = (TextView)view.findViewById(R.id.artist_name);
         artistTextView.setText(mTrackContent.getArtistName());
@@ -65,11 +84,9 @@ public class TrackPlayerFragment extends Fragment {
         ImageView trackImageView = (ImageView)view.findViewById(R.id.player_track_image);
         Picasso.with(getActivity())
                 .load(mTrackContent.getThumbnailURL())
-//                .resize(200,200)
-//                .centerCrop()
                 .into(trackImageView);
 
-        return view;
+        mProgressBar.setProgress(0);
     }
 
     @Override
@@ -89,6 +106,41 @@ public class TrackPlayerFragment extends Fragment {
     @Override
     public void onStop() {
         super.onStop();
+    }
+
+    //public methods to be called by the activity
+
+    //show the resume button instead of the pause button
+    public void showResumeButton()
+    {
+        mPauseButton.setVisibility(View.GONE);
+        mResumeButton.setVisibility(View.VISIBLE);
+    }
+
+    //show the pause button instead of the resume button
+    public void showPauseButton()
+    {
+        mPauseButton.setVisibility(View.VISIBLE);
+        mResumeButton.setVisibility(View.GONE);
+    }
+
+    //update the visible progress bar with the current position
+    public void updateProgress(int pos)
+    {
+        mProgressBar.setProgress(pos);
+    }
+
+    //setup the progress bar with the duration, set initially to 0
+    public void setupProgressBar(int duration)
+    {
+        mProgressBar.setMax(duration);
+        mProgressBar.setProgress(0);
+    }
+
+    //the track being played has changed - update the UI
+    public void updateDisplayedTrack(TrackContent track) {
+        mTrackContent = track;
+        setupDisplayedTrack(this.getView());
     }
 
 }

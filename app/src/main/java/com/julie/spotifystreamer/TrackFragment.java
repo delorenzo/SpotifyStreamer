@@ -124,8 +124,8 @@ public class TrackFragment extends Fragment implements AbsListView.OnItemClickLi
         if (null != mListener) {
             // Notify the active callbacks interface (the activity, if the
             // fragment is attached to one) that an item has been selected.
-            TrackContent track = mAdapter.getItem(position);
-            mListener.onTrackSelected(track);
+            //TrackContent track = mAdapter.getItem(position);
+            mListener.onTrackSelected(mTrackList, position);
         }
     }
 
@@ -191,7 +191,7 @@ public class TrackFragment extends Fragment implements AbsListView.OnItemClickLi
      * >Communicating with Other Fragments</a> for more information.
      */
     public interface OnTrackSelectedListener {
-        void onTrackSelected(TrackContent track);
+        void onTrackSelected(ArrayList<TrackContent> trackList, int position);
     }
 
     private class RetrieveTrackTask extends AsyncTask<String, Void, ArrayList<TrackContent>> {

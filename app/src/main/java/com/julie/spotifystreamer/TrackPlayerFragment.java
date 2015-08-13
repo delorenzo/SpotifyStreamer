@@ -9,26 +9,24 @@ import android.view.ViewGroup;
 import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.ProgressBar;
+import android.widget.SeekBar;
 import android.widget.TextView;
 
 import com.julie.spotifystreamer.DataContent.TrackContent;
 import com.squareup.picasso.Picasso;
-
-import java.sql.Time;
-import java.util.concurrent.TimeUnit;
 
 
 //TrackPlayerFragment handles playing the selected track.
 //see https://developer.android.com/guide/topics/media/mediaplayer.html
 //and https://developer.android.com/reference/android/media/MediaPlayer.html
 
-public class TrackPlayerFragment extends Fragment {
+public class TrackPlayerFragment extends Fragment implements SeekBar.OnSeekBarChangeListener{
     private static final String LOG_TAG = TrackPlayerFragment.class.getSimpleName();
     private static final String ARG_TRACK = "track";
     private TrackContent mTrackContent;
     private ImageButton mPauseButton;
     private ImageButton mResumeButton;
-    private ProgressBar mProgressBar;
+    private SeekBar mSeekBar;
 
     public TrackPlayerFragment() {
     }
@@ -60,7 +58,7 @@ public class TrackPlayerFragment extends Fragment {
             return view;
         }
 
-        mProgressBar = (ProgressBar) view.findViewById(R.id.progress_bar);
+        mSeekBar = (SeekBar) view.findViewById(R.id.progress_bar);
         mPauseButton = (ImageButton) view.findViewById(R.id.button_pause);
         mResumeButton = (ImageButton) view.findViewById(R.id.button_play);
 
@@ -86,7 +84,7 @@ public class TrackPlayerFragment extends Fragment {
                 .load(mTrackContent.getThumbnailURL())
                 .into(trackImageView);
 
-        mProgressBar.setProgress(0);
+        mSeekBar.setProgress(0);
     }
 
     @Override
@@ -127,14 +125,14 @@ public class TrackPlayerFragment extends Fragment {
     //update the visible progress bar with the current position
     public void updateProgress(int pos)
     {
-        mProgressBar.setProgress(pos);
+        mSeekBar.setProgress(pos);
     }
 
     //setup the progress bar with the duration, set initially to 0
     public void setupProgressBar(int duration)
     {
-        mProgressBar.setMax(duration);
-        mProgressBar.setProgress(0);
+        mSeekBar.setMax(duration);
+        mSeekBar.setProgress(0);
     }
 
     //the track being played has changed - update the UI
@@ -143,4 +141,18 @@ public class TrackPlayerFragment extends Fragment {
         setupDisplayedTrack(this.getView());
     }
 
+    @Override
+    public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+
+    }
+
+    @Override
+    public void onStartTrackingTouch(SeekBar seekBar) {
+
+    }
+
+    @Override
+    public void onStopTrackingTouch(SeekBar seekBar) {
+
+    }
 }

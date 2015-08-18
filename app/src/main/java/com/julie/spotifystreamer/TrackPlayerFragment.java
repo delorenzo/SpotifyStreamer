@@ -1,5 +1,6 @@
 package com.julie.spotifystreamer;
 
+import android.app.Activity;
 import android.support.v4.app.Fragment;
 import android.os.Bundle;
 import android.util.Log;
@@ -20,13 +21,17 @@ import com.squareup.picasso.Picasso;
 //see https://developer.android.com/guide/topics/media/mediaplayer.html
 //and https://developer.android.com/reference/android/media/MediaPlayer.html
 
-public class TrackPlayerFragment extends Fragment implements SeekBar.OnSeekBarChangeListener{
+public class TrackPlayerFragment extends Fragment {
+
     private static final String LOG_TAG = TrackPlayerFragment.class.getSimpleName();
     private static final String ARG_TRACK = "track";
     private TrackContent mTrackContent;
     private ImageButton mPauseButton;
     private ImageButton mResumeButton;
     private SeekBar mSeekBar;
+    //this variable blocks the seek bar from advancing when the user is adjusting it
+    private Boolean mDragging = false;
+    OnSeekBarUserUpdateListener mCallBack;
 
     public TrackPlayerFragment() {
     }
@@ -34,9 +39,22 @@ public class TrackPlayerFragment extends Fragment implements SeekBar.OnSeekBarCh
     public static TrackPlayerFragment newInstance(TrackContent track) {
         TrackPlayerFragment fragment = new TrackPlayerFragment();
         Bundle args = new Bundle();
+        args.setClassLoader(TrackContent.class.getClassLoader());
         args.putParcelable(ARG_TRACK, track);
         fragment.setArguments(args);
         return fragment;
+    }
+
+    @Override
+    public void onAttach(Activity activity) {
+        super.onAttach(activity);
+
+        try {
+            mCallBack = (OnSeekBarUserUpdateListener) activity;
+        } catch (ClassCastException e) {
+            throw new ClassCastException(activity.toString()
+                    + " must implement OnHeadlineSelectedListener");
+        }
     }
 
     @Override
@@ -85,6 +103,29 @@ public class TrackPlayerFragment extends Fragment implements SeekBar.OnSeekBarCh
                 .into(trackImageView);
 
         mSeekBar.setProgress(0);
+        mSeekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            //update the seekbar and notify the activity if the changes came from the user
+            @Override
+            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+                if (fromUser && !mDragging) {
+                    mSeekBar.setProgress(progress);
+                    mCallBack.onSeekBarUserUpdate(progress);
+                }
+            }
+
+            //the user has started dragging the seekbar
+            @Override
+            public void onStartTrackingTouch(SeekBar seekBar) {
+                mDragging = true;
+            }
+
+            //the user has stopped dragging the seekbar
+            @Override
+            public void onStopTrackingTouch(SeekBar seekBar) {
+                mDragging = false;
+                mCallBack.onSeekBarUserUpdate(seekBar.getProgress());
+            }
+        });
     }
 
     @Override
@@ -97,6 +138,7 @@ public class TrackPlayerFragment extends Fragment implements SeekBar.OnSeekBarCh
     public void onActivityCreated(Bundle savedInstanceState) {
         super.onActivityCreated(savedInstanceState);
         if (savedInstanceState != null) {
+            savedInstanceState.setClassLoader(TrackContent.class.getClassLoader());
             mTrackContent = savedInstanceState.getParcelable(ARG_TRACK);
         }
     }
@@ -125,7 +167,13 @@ public class TrackPlayerFragment extends Fragment implements SeekBar.OnSeekBarCh
     //update the visible progress bar with the current position
     public void updateProgress(int pos)
     {
-        mSeekBar.setProgress(pos);
+        if (!mDragging) {
+            mSeekBar.setProgress(pos);
+            //swap the pause and resume buttons if the end of playback is reached
+            if (pos >= mSeekBar.getMax()) {
+                showResumeButton();
+            }
+        }
     }
 
     //setup the progress bar with the duration, set initially to 0
@@ -141,18 +189,7 @@ public class TrackPlayerFragment extends Fragment implements SeekBar.OnSeekBarCh
         setupDisplayedTrack(this.getView());
     }
 
-    @Override
-    public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
-
-    }
-
-    @Override
-    public void onStartTrackingTouch(SeekBar seekBar) {
-
-    }
-
-    @Override
-    public void onStopTrackingTouch(SeekBar seekBar) {
-
+    interface OnSeekBarUserUpdateListener {
+        void onSeekBarUserUpdate(int position);
     }
 }

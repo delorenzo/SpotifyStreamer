@@ -15,11 +15,13 @@
         android:layout_width="match_parent">
         <TextView
             android:id="@+id/album_name"
+            android:fontFamily="sans-serif-condensed"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:hint="@string/album_placeholder"/>
         <TextView
             android:id="@+id/track_name"
+            android:fontFamily="sans-serif-condensed"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:hint="@string/track_placeholder"/>

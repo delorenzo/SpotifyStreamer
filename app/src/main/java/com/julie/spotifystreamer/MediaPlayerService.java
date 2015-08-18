@@ -6,17 +6,24 @@ import android.app.PendingIntent;
 import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
+import android.graphics.Bitmap;
 import android.media.AudioManager;
+import android.media.MediaMetadata;
 import android.media.MediaPlayer;
+import android.media.session.MediaSession;
+import android.media.session.MediaSessionManager;
 import android.net.Uri;
 import android.net.wifi.WifiManager;
 import android.os.Binder;
+import android.os.Bundle;
 import android.os.IBinder;
 import android.os.PowerManager;
+import android.os.ResultReceiver;
 import android.support.v4.app.NotificationCompat;
 import android.util.Log;
 
 import com.julie.spotifystreamer.Receivers.RemoteControlReceiver;
+import com.squareup.picasso.Picasso;
 
 import java.io.IOException;
 
@@ -39,6 +46,11 @@ public class MediaPlayerService extends Service implements MediaPlayer.OnPrepare
     public static final String ACTION_CHANGE_TRACK = "com.julie.spotifystreamer.action.CHANGE_TRACK";
     public static final String ARG_TRACK_NAME = "songName";
     public static final String ARG_URI = "uri";
+    public static final String ARG_ALBUM_ART = "albumArt";
+    //receiver constants
+    public static final String RESULT_RECEIVER = "resultReceiver";
+    public static final int PREPARED = 22;
+    public static final int COMPLETE = 33;
 
     //private constants
     private static final String LOG_TAG = MediaPlayerService.class.getSimpleName();
@@ -49,11 +61,14 @@ public class MediaPlayerService extends Service implements MediaPlayer.OnPrepare
     private MediaPlayer mMediaPlayer = null;
     private String mUriString;
     private String mTrackName;
+    private String mAlbumArtURL;
     private WifiManager.WifiLock mWifiLock;
     private final IBinder mBinder = new MediaPlayerBinder();
     private AudioManager mAudioManager;
     private NotificationCompat.Builder mNotificationBuilder;
+    private Boolean isPrepared = false;
     private int duration = 0;
+    private ResultReceiver resultReceiver;
 
     //handle audio focus changes by pausing/resuming/adjusting audio as is appropriate
     @Override
@@ -86,6 +101,7 @@ public class MediaPlayerService extends Service implements MediaPlayer.OnPrepare
             case ACTION_PLAY:
                 mUriString = intent.getStringExtra(ARG_URI);
                 mTrackName = intent.getStringExtra(ARG_TRACK_NAME);
+                mAlbumArtURL = intent.getStringExtra(ARG_ALBUM_ART);
 
                 mAudioManager = (AudioManager) getSystemService(Context.AUDIO_SERVICE);
                 int result = mAudioManager.requestAudioFocus(this, AudioManager.STREAM_MUSIC,
@@ -97,6 +113,8 @@ public class MediaPlayerService extends Service implements MediaPlayer.OnPrepare
 
                 initMediaPlayer();
                 initNotification();
+
+                resultReceiver = intent.getParcelableExtra(RESULT_RECEIVER);
                 break;
 
             case ACTION_STOP:
@@ -113,7 +131,7 @@ public class MediaPlayerService extends Service implements MediaPlayer.OnPrepare
                 mUriString = intent.getStringExtra(ARG_URI);
                 mTrackName = intent.getStringExtra(ARG_TRACK_NAME);
                 initMediaPlayer();
-                updateNotification();
+                initNotification();
                 break;
 
             default:
@@ -131,10 +149,10 @@ public class MediaPlayerService extends Service implements MediaPlayer.OnPrepare
 
         mNotificationBuilder =
                 new NotificationCompat.Builder(getApplicationContext())
-                .setContentTitle(getString(R.string.now_playing))
-                .setSmallIcon(R.drawable.ic_queue_music_black_24dp)
-                .setContentText(mTrackName)
-                .setContentIntent(pendingIntent);
+                        .setContentTitle(getString(R.string.now_playing))
+                        .setSmallIcon(R.drawable.ic_queue_music_black_24dp)
+                        .setContentText(mTrackName)
+                        .setContentIntent(pendingIntent);
         Notification notification = mNotificationBuilder.build();
 
         NotificationManager mNotificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
@@ -154,6 +172,7 @@ public class MediaPlayerService extends Service implements MediaPlayer.OnPrepare
     //the media player has completed playback.  release resources
     @Override
     public void onCompletion(MediaPlayer mp) {
+        resultReceiver.send(COMPLETE, new Bundle());
         mMediaPlayer.reset();
         mMediaPlayer.release();
         mMediaPlayer = null;
@@ -214,6 +233,7 @@ public class MediaPlayerService extends Service implements MediaPlayer.OnPrepare
             mMediaPlayer.release();
             mMediaPlayer = null;
         }
+        isPrepared = false;
         releaseWifiLock();
         stopForeground(true);
         stopSelf();
@@ -223,6 +243,9 @@ public class MediaPlayerService extends Service implements MediaPlayer.OnPrepare
     public void onResume()
     {
         acquireWifiLock();
+        if (mMediaPlayer == null) {
+            initMediaPlayer();
+        }
         if (!mMediaPlayer.isPlaying()) {
             mMediaPlayer.start();
         }
@@ -259,6 +282,8 @@ public class MediaPlayerService extends Service implements MediaPlayer.OnPrepare
     public void onPrepared(MediaPlayer mp) {
         mp.start();
         duration = mp.getDuration();
+        isPrepared = true;
+        resultReceiver.send(PREPARED, new Bundle());
     }
 
     //the service is being destroyed.  release resources
@@ -301,7 +326,7 @@ public class MediaPlayerService extends Service implements MediaPlayer.OnPrepare
     //return current position of the media player
     public int getCurrentPosition()
     {
-        return mMediaPlayer != null ? mMediaPlayer.getCurrentPosition() : 0;
+        return isPrepared ? mMediaPlayer.getCurrentPosition() : 0;
     }
 
     //return duration of the media player
@@ -309,4 +334,17 @@ public class MediaPlayerService extends Service implements MediaPlayer.OnPrepare
     {
         return duration;
     }
+
+    public void MediaPlayerSeekTo(int progress) {
+        if (mMediaPlayer != null) {
+            mMediaPlayer.pause();
+            mMediaPlayer.seekTo(progress);
+            mMediaPlayer.start();
+        }
+    }
+
+    public Boolean isPrepared() {
+        return isPrepared;
+    }
+
 }

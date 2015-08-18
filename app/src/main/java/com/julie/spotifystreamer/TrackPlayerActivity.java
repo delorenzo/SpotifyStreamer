@@ -4,25 +4,35 @@ import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.ServiceConnection;
+import android.os.AsyncTask;
 import android.os.Bundle;
+import android.os.Handler;
 import android.os.IBinder;
+import android.os.Looper;
+import android.os.Message;
+import android.os.ResultReceiver;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.widget.SeekBar;
 
 import com.julie.spotifystreamer.DataContent.TrackContent;
 
 import java.util.ArrayList;
 
-public class TrackPlayerActivity extends AppCompatActivity {
+import kaaes.spotify.webapi.android.models.Track;
+
+public class TrackPlayerActivity extends AppCompatActivity
+        implements TrackPlayerFragment.OnSeekBarUserUpdateListener {
 
     public static final String ARG_TRACK = "track";
     public static final String ARG_TRACK_LIST = "trackList";
     public static final String ARG_POSITION = "position";
     public static final String PLAYER_FRAGMENT_TAG = "playerFragment";
     private static final String LOG_TAG = TrackPlayerActivity.class.getSimpleName();
+
     private boolean mBound = false;
     //the mediaplayerservice lives here so that its lifetime isn't linked to the lifetime
     //of the fragment.
@@ -33,6 +43,8 @@ public class TrackPlayerActivity extends AppCompatActivity {
     private ArrayList<TrackContent> mTrackList;
     private Boolean isPlaying = false;
     private int mCurrentPos = 0;
+    private int mDuration = 0;
+    private Handler mHandler = new Handler();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -44,7 +56,6 @@ public class TrackPlayerActivity extends AppCompatActivity {
             getIntent().getExtras().setClassLoader(TrackContent.class.getClassLoader());
             mTrackListPosition = getIntent().getIntExtra(ARG_POSITION, 0);
             mTrackList = getIntent().getParcelableArrayListExtra(ARG_TRACK_LIST);
-            //mTrackContent = getIntent().getParcelableExtra(ARG_TRACK);
             mTrackContent = mTrackList.get(mTrackListPosition);
 
             startMusicPlayerService(MediaPlayerService.ACTION_PLAY);
@@ -64,6 +75,9 @@ public class TrackPlayerActivity extends AppCompatActivity {
         Intent playIntent = new Intent(this, MediaPlayerService.class);
         playIntent.putExtra(MediaPlayerService.ARG_URI, mTrackContent.getPreviewURL());
         playIntent.putExtra(MediaPlayerService.ARG_TRACK_NAME, mTrackContent.getTrackName());
+        //because the media player is being implemented as a service, we need some way
+        //for the service to notify the activity of updates to its state.
+        playIntent.putExtra(MediaPlayerService.RESULT_RECEIVER, mResultReceiver);
         playIntent.setAction(action);
         startService(playIntent);
 
@@ -83,13 +97,13 @@ public class TrackPlayerActivity extends AppCompatActivity {
 
     @Override
     protected void onDestroy() {
-        isPlaying = false;
-        if (mBound) {
-            mService.onStop();
-            isPlaying = false;
-            unbindService(mConnection);
-            mBound = false;
-        }
+//        isPlaying = false;
+//        if (mBound) {
+//            mService.onStop();
+//            isPlaying = false;
+//            unbindService(mConnection);
+//            mBound = false;
+//        }
         super.onDestroy();
     }
 
@@ -127,9 +141,6 @@ public class TrackPlayerActivity extends AppCompatActivity {
             mService = binder.getService();
             mBound = true;
             isPlaying = true;
-            mCurrentPos = 0;
-
-            thread.start();
         }
 
         @Override
@@ -182,7 +193,6 @@ public class TrackPlayerActivity extends AppCompatActivity {
 
         //restart playback
         startMusicPlayerService(MediaPlayerService.ACTION_CHANGE_TRACK);
-        thread.start();
     }
 
     public void skipPreviousPlayer(View view) {
@@ -202,51 +212,66 @@ public class TrackPlayerActivity extends AppCompatActivity {
 
         //restart playback
         startMusicPlayerService(MediaPlayerService.ACTION_CHANGE_TRACK);
-        thread.start();
     }
 
-    //https://stackoverflow.com/questions/2967337/how-do-i-use-android-progressbar-in-determinate-mode
-    //the thread runs in the activity and not the fragment because the fragment has the potential
-    //to be destroyed on rotation.
-    Thread thread = new Thread(new Runnable()
-    {
-        public void run()
-        {
+    ///asynchronous task that polls the media player for its progress
+    //and notifies the fragment to update the UI.
+    private class UpdateProgressTask extends AsyncTask<Integer, Integer, Integer> {
+        protected Integer doInBackground(Integer ... args) {
+            int currentPos = 0;
+            try {
+                while (currentPos < mDuration && isPlaying) {
+                    if (mBound && mService.isPrepared()) {
+                        currentPos = mService.getCurrentPosition();
+                        publishProgress(currentPos);
+                    }
+                    Thread.sleep(200);
+                }
+                isPlaying = false;
+            } catch (InterruptedException e) {
+                Log.e(LOG_TAG, "Progress bar thread interrupted:  " + e.getMessage());
+            }
+            return 0;
+        }
 
-            //to get the player duration, the player has to be in an appropriate state, but
-            //the activity doesn't have a way to wait for the on prepared callback, so poll until
-            //the service gives a valid duration.
+        protected void onProgressUpdate (Integer ... progress) {
             TrackPlayerFragment fragment = (TrackPlayerFragment)getSupportFragmentManager().
                     findFragmentByTag(PLAYER_FRAGMENT_TAG);
-            int duration = mService.getDuration();
-            while (duration == 0) {
-                try {
-                    Thread.sleep(200);
-                    duration = mService.getDuration();
-                } catch (InterruptedException e) {
-                    Log.e(LOG_TAG, "Progress bar thread interrupted:  " + e.getMessage());
-                    return;
-                }
-            }
+            fragment.updateProgress(progress[0]);
+        }
+    }
 
-            //setup the progress bar
-            fragment.setupProgressBar(duration);
-
-            //update the progress bar as appropriate
-            while (isPlaying && mCurrentPos < duration) {
-                try {
-                    Thread.sleep(500);
-                    mCurrentPos = mService.getCurrentPosition();
-                    fragment.updateProgress(mCurrentPos);
-                } catch (InterruptedException e) {
-                    Log.e(LOG_TAG, "Progress bar thread interrupted:  " + e.getMessage());
-                    return;
-                }
-                if (mCurrentPos >= duration) {
+    /*
+    ResultReceiver that handles messages from the Service about the Service's state.
+     */
+    final ResultReceiver mResultReceiver = new ResultReceiver(mHandler) {
+        @Override
+        protected void onReceiveResult(int resultCode, Bundle resultData) {
+            TrackPlayerFragment fragment = (TrackPlayerFragment) getSupportFragmentManager().
+                    findFragmentByTag(PLAYER_FRAGMENT_TAG);
+            switch (resultCode) {
+                case MediaPlayerService.PREPARED:
+                    isPlaying = true;
+                    mDuration = mService.getDuration();
+                    fragment.setupProgressBar(mDuration);
+                    new UpdateProgressTask().execute();
+                    break;
+                case MediaPlayerService.COMPLETE:
                     isPlaying = false;
                     fragment.showResumeButton();
-                }
+                    break;
+                default:
+                    Log.e(LOG_TAG, "OnReceiveResult called with unknown result code:  " + resultCode);
+                    break;
             }
+
         }
-    });
+    };
+
+    //the user has dragged the seek bar - attempt to update the music playback
+    public void onSeekBarUserUpdate(int position) {
+        if (mService != null && mService.isPrepared()) {
+            mService.MediaPlayerSeekTo(position);
+        }
+    }
 }

@@ -7,34 +7,49 @@
     android:gravity="center"
     tools:context="com.julie.spotifystreamer.TrackPlayerFragment">
     <!-- the album artwork, artist name, album name, track name -->
-    <TextView
-        android:textAppearance="?android:textAppearanceMedium"
-        android:layout_marginTop="16dp"
+    <LinearLayout
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:textColor="@color/medium_grey"
-        android:fontFamily="sans-serif-condensed"
-        android:hint="@string/artist_placeholder"
-        android:id="@+id/artist_name"/>
-    <TextView
-        android:textAppearance="?android:textAppearanceMedium"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:textColor="@color/medium_grey"
-        android:fontFamily="sans-serif-condensed"
-        android:hint="@string/album_placeholder"
-        android:id="@+id/album_name"/>
-    <ImageView
-        style="@style/musicPlayerTrackImage"
-        android:id="@+id/player_track_image"/>
-    <TextView
-        android:textAppearance="?android:textAppearanceMedium"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:id="@+id/track_name"
-        android:hint="@string/track_placeholder"
-        android:textColor="@color/medium_grey"
-        android:fontFamily="sans-serif-condensed"/>
+        android:orientation="horizontal">
+        <LinearLayout
+            android:paddingRight="26dp"
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent"
+            android:orientation="vertical">
+            <TextView
+                android:textAppearance="?android:textAppearanceLarge"
+                android:layout_weight="1"
+                android:layout_marginTop="16dp"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textColor="@color/medium_grey"
+                android:fontFamily="sans-serif-condensed"
+                android:hint="@string/artist_placeholder"
+                android:id="@+id/artist_name"/>
+            <TextView
+                android:textAppearance="?android:textAppearanceLarge"
+                android:layout_weight="1"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textColor="@color/medium_grey"
+                android:fontFamily="sans-serif-condensed"
+                android:hint="@string/album_placeholder"
+                android:id="@+id/album_name"/>
+            <TextView
+                android:textAppearance="?android:textAppearanceLarge"
+                android:layout_weight="1"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:id="@+id/track_name"
+                android:hint="@string/track_placeholder"
+                android:textColor="@color/medium_grey"
+                android:fontFamily="sans-serif-condensed"/>
+        </LinearLayout>
+
+        <ImageView
+            style="@style/musicPlayerTrackImageLandscape"
+            android:id="@+id/player_track_image"/>
+    </LinearLayout>
     <SeekBar
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -43,6 +58,7 @@
         android:layout_marginBottom="16dp"
         style="@android:style/Widget.ProgressBar.Horizontal"
         android:progressTint="@color/spotify_green"
+
         android:maxHeight="3dp"
         android:minHeight="3dp"/>
     <LinearLayout

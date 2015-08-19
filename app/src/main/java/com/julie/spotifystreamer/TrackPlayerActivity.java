@@ -253,7 +253,7 @@ public class TrackPlayerActivity extends AppCompatActivity
                 case MediaPlayerService.PREPARED:
                     isPlaying = true;
                     mDuration = mService.getDuration();
-                    fragment.setupProgressBar(mDuration);
+                    fragment.setupProgressBar(mDuration, 0);
                     new UpdateProgressTask().execute();
                     break;
                 case MediaPlayerService.COMPLETE:

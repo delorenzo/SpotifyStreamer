@@ -1,6 +1,7 @@
 package com.julie.spotifystreamer;
 
 import android.app.Activity;
+import android.support.v4.app.DialogFragment;
 import android.support.v4.app.Fragment;
 import android.os.Bundle;
 import android.util.Log;
@@ -20,11 +21,13 @@ import com.squareup.picasso.Picasso;
 //TrackPlayerFragment handles playing the selected track.
 //see https://developer.android.com/guide/topics/media/mediaplayer.html
 //and https://developer.android.com/reference/android/media/MediaPlayer.html
+//https://developer.android.com/reference/android/app/DialogFragment.html
 
-public class TrackPlayerFragment extends Fragment {
-
+public class TrackPlayerFragment extends DialogFragment {
     private static final String LOG_TAG = TrackPlayerFragment.class.getSimpleName();
     private static final String ARG_TRACK = "track";
+    private static final String ARG_TRACK_DURATION = "trackDuration";
+    private static final String ARG_SEEKBAR_POSITION = "seekBarPos";
     private TrackContent mTrackContent;
     private ImageButton mPauseButton;
     private ImageButton mResumeButton;
@@ -32,6 +35,8 @@ public class TrackPlayerFragment extends Fragment {
     //this variable blocks the seek bar from advancing when the user is adjusting it
     private Boolean mDragging = false;
     OnSeekBarUserUpdateListener mCallBack;
+    private int mDuration = 0;
+    private int mPosition = 0;
 
     public TrackPlayerFragment() {
     }
@@ -53,7 +58,7 @@ public class TrackPlayerFragment extends Fragment {
             mCallBack = (OnSeekBarUserUpdateListener) activity;
         } catch (ClassCastException e) {
             throw new ClassCastException(activity.toString()
-                    + " must implement OnHeadlineSelectedListener");
+                    + " must implement OnSeekBarUserUpdateListener");
         }
     }
 
@@ -132,6 +137,8 @@ public class TrackPlayerFragment extends Fragment {
     public void onSaveInstanceState(Bundle outState) {
         super.onSaveInstanceState(outState);
         outState.putParcelable(ARG_TRACK, mTrackContent);
+        outState.putInt(ARG_SEEKBAR_POSITION, mPosition);
+        outState.putInt(ARG_TRACK_DURATION, mDuration);
     }
 
     @Override
@@ -140,6 +147,9 @@ public class TrackPlayerFragment extends Fragment {
         if (savedInstanceState != null) {
             savedInstanceState.setClassLoader(TrackContent.class.getClassLoader());
             mTrackContent = savedInstanceState.getParcelable(ARG_TRACK);
+            mPosition = savedInstanceState.getInt(ARG_SEEKBAR_POSITION);
+            mDuration = savedInstanceState.getInt(ARG_TRACK_DURATION);
+            setupProgressBar(mDuration, mPosition);
         }
     }
 
@@ -176,11 +186,13 @@ public class TrackPlayerFragment extends Fragment {
         }
     }
 
-    //setup the progress bar with the duration, set initially to 0
-    public void setupProgressBar(int duration)
+    //setup the progress bar with the duration and position
+    public void setupProgressBar(int duration, int position)
     {
+        mDuration = duration;
+        mPosition = position;
         mSeekBar.setMax(duration);
-        mSeekBar.setProgress(0);
+        mSeekBar.setProgress(position);
     }
 
     //the track being played has changed - update the UI
@@ -192,4 +204,6 @@ public class TrackPlayerFragment extends Fragment {
     interface OnSeekBarUserUpdateListener {
         void onSeekBarUserUpdate(int position);
     }
+
+
 }

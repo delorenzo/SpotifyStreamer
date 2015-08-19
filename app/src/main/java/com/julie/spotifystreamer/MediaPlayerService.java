@@ -44,6 +44,9 @@ public class MediaPlayerService extends Service implements MediaPlayer.OnPrepare
     public static final String ACTION_PLAY = "com.julie.spotifystreamer.action.PLAY";
     public static final String ACTION_STOP = "com.julie.spotifystreamer.action.STOP";
     public static final String ACTION_CHANGE_TRACK = "com.julie.spotifystreamer.action.CHANGE_TRACK";
+    public static final String ACTION_PREVIOUS = "com.julie.spotifystreamer.action.PREVIOUS";
+    public static final String ACTION_NEXT = "com.julie.spotifystreamer.action.PREVIOUS";
+    public static final String ACTION_PAUSE = "com.julie.spotifystreamer.action.PAUSE";
     public static final String ARG_TRACK_NAME = "songName";
     public static final String ARG_URI = "uri";
     public static final String ARG_ALBUM_ART = "albumArt";
@@ -62,6 +65,7 @@ public class MediaPlayerService extends Service implements MediaPlayer.OnPrepare
     private String mUriString;
     private String mTrackName;
     private String mAlbumArtURL;
+    private Bitmap mAlbumArt;
     private WifiManager.WifiLock mWifiLock;
     private final IBinder mBinder = new MediaPlayerBinder();
     private AudioManager mAudioManager;
@@ -117,6 +121,10 @@ public class MediaPlayerService extends Service implements MediaPlayer.OnPrepare
                 resultReceiver = intent.getParcelableExtra(RESULT_RECEIVER);
                 break;
 
+            case ACTION_PAUSE:
+                onPause();
+                break;
+
             case ACTION_STOP:
                 onStop();
                 break;
@@ -147,18 +155,48 @@ public class MediaPlayerService extends Service implements MediaPlayer.OnPrepare
                 new Intent(getApplicationContext(), TrackPlayerActivity.class),
                 PendingIntent.FLAG_UPDATE_CURRENT);
 
+        Intent stopIntent = new Intent(getApplicationContext(), MediaPlayerService.class);
+        stopIntent.setAction(MediaPlayerService.ACTION_STOP);
+        PendingIntent deleteIntent = PendingIntent.getService(getApplicationContext(), 1, stopIntent, 0);
+
+        Intent intent = new Intent(this, MediaPlayerService.class);
+        intent.setAction(MediaPlayerService.ACTION_PAUSE);
+        PendingIntent pausePendingIntent =
+                PendingIntent.getActivity(
+                        getApplicationContext(),
+                        0,
+                        intent,
+                        PendingIntent.FLAG_UPDATE_CURRENT
+                );
+
         mNotificationBuilder =
                 new NotificationCompat.Builder(getApplicationContext())
                         .setContentTitle(getString(R.string.now_playing))
                         .setSmallIcon(R.drawable.ic_queue_music_black_24dp)
                         .setContentText(mTrackName)
-                        .setContentIntent(pendingIntent);
+                        .setContentIntent(pendingIntent)
+                        .setDeleteIntent(deleteIntent)
+                        .addAction(R.drawable.ic_skip_previous_black_24dp, "Previous", generatePendingIntent(MediaPlayerService.ACTION_PREVIOUS))
+                        .addAction(R.drawable.ic_pause_black_24dp, "Pause", generatePendingIntent(MediaPlayerService.ACTION_PAUSE))
+                        .addAction(R.drawable.ic_skip_next_black_24dp, "Next", generatePendingIntent(MediaPlayerService.ACTION_NEXT))
+                        .setVisibility(Notification.VISIBILITY_PUBLIC);
         Notification notification = mNotificationBuilder.build();
 
         NotificationManager mNotificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
         mNotificationManager.notify(mNotificationId, notification);
 
         startForeground(mNotificationId, notification);
+    }
+
+    private PendingIntent generatePendingIntent(String action) {
+        Intent intent = new Intent(this, MediaPlayerService.class);
+        intent.setAction(action);
+        return PendingIntent.getActivity(
+                        getApplicationContext(),
+                        0,
+                        intent,
+                        PendingIntent.FLAG_UPDATE_CURRENT
+                );
     }
 
     //update the notification with the appropriate track name

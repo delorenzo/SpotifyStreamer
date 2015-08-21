@@ -4,6 +4,8 @@
 
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
+    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
     <uses-permission android:name="android.permission.MEDIA_CONTENT_CONTROL" />
 
     <application
@@ -28,16 +30,24 @@
         </activity>
         <activity
             android:name=".TrackPlayerActivity"
-            android:label="@string/title_activity_track_player"
-            android:theme="@style/PlayerTheme">
+            android:label="@string/title_activity_track_player" >
         </activity>
-        <service android:name=".MediaPlayerService" android:enabled="true" />
-        <receiver android:name=".Receivers.RemoteControlReceiver">
+        <activity
+            android:name=".SettingsActivity"
+            android:label="@string/title_activity_settings"
+            android:parentActivityName=".MainActivity">
+        </activity>
+
+        <service
+            android:name=".MediaPlayerService"
+            android:enabled="true" />
+
+        <receiver android:name=".Receivers.RemoteControlReceiver" >
             <intent-filter>
                 <action android:name="android.intent.action.MEDIA_BUTTON" />
             </intent-filter>
         </receiver>
-        <receiver android:name=".Receivers.MusicIntentReceiver">
+        <receiver android:name=".Receivers.MusicIntentReceiver" >
             <intent-filter>
                 <action android:name="android.media.AUDIO_BECOMING_NOISY" />
             </intent-filter>

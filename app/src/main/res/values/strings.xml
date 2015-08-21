@@ -23,6 +23,17 @@
         <xliff:g id="seconds">%02d</xliff:g>
     </string>
 
-<!-- TODO: Remove or change this placeholder text -->
-    <string name="hello_blank_fragment">Hello blank fragment</string>
+    <string name="action_share">Share Track</string>
+
+    <!-- strings for settings activity-->
+    <!-- strings for the preference on showing notification controls-->
+    <string name="pref_show_notification_controls_key" translatable="false">showNotificationControls</string>
+    <string name="pref_show_notification_controls_label">Show notification controls on lock screen</string>
+    <string name="pref_show_notification_controls_default" translatable="false">True</string>
+    <string name="pref_show_notification_controls_true">Enabled</string>
+    <string name="pref_show_notification_controls_false">Disabled</string>
+    <!--strings for the preference on country code -->
+    <string name="pref_country_code_key" translatable="false">countryCode</string>
+    <string name="pref_country_code_label">Country Code</string>
+    <string name="pref_country_code_default">US</string>
 </resources>

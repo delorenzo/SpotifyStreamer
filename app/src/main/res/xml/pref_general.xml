@@ -1,0 +1,19 @@
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <CheckBoxPreference
+        android:key="@string/pref_show_notification_controls_key"
+        android:title="@string/pref_show_notification_controls_label"
+        android:defaultValue="@string/pref_show_notification_controls_default"
+        android:summaryOff="@string/pref_show_notification_controls_false"
+        android:summaryOn="@string/pref_show_notification_controls_true"
+        />
+
+    <EditTextPreference
+        android:key="@string/pref_country_code_key"
+        android:title="@string/pref_country_code_label"
+        android:defaultValue="@string/pref_country_code_default"
+        android:inputType="text"
+        android:singleLine="true"
+        />
+
+</PreferenceScreen>

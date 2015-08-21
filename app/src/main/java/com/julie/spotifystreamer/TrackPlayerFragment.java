@@ -17,10 +17,7 @@ import android.widget.TextView;
 import com.julie.spotifystreamer.DataContent.TrackContent;
 import com.squareup.picasso.Picasso;
 
-
-//TrackPlayerFragment handles playing the selected track.
-//see https://developer.android.com/guide/topics/media/mediaplayer.html
-//and https://developer.android.com/reference/android/media/MediaPlayer.html
+//TrackPlayerFragment is a dialog fragment that displays the music player UI
 //https://developer.android.com/reference/android/app/DialogFragment.html
 
 public class TrackPlayerFragment extends DialogFragment {
@@ -150,6 +147,7 @@ public class TrackPlayerFragment extends DialogFragment {
             mPosition = savedInstanceState.getInt(ARG_SEEKBAR_POSITION);
             mDuration = savedInstanceState.getInt(ARG_TRACK_DURATION);
             setupProgressBar(mDuration, mPosition);
+            setupDisplayedTrack(this.getView());
         }
     }
 

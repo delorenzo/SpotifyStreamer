@@ -14,6 +14,7 @@ import android.media.session.MediaSession;
 import android.media.session.MediaSessionManager;
 import android.net.Uri;
 import android.net.wifi.WifiManager;
+import android.os.AsyncTask;
 import android.os.Binder;
 import android.os.Bundle;
 import android.os.IBinder;
@@ -22,10 +23,12 @@ import android.os.ResultReceiver;
 import android.support.v4.app.NotificationCompat;
 import android.util.Log;
 
+import com.julie.spotifystreamer.DataContent.TrackContent;
 import com.julie.spotifystreamer.Receivers.RemoteControlReceiver;
 import com.squareup.picasso.Picasso;
 
 import java.io.IOException;
+import java.util.ArrayList;
 
 /**
  * MediaPlayerService:
@@ -40,20 +43,25 @@ public class MediaPlayerService extends Service implements MediaPlayer.OnPrepare
         MediaPlayer.OnErrorListener, MediaPlayer.OnCompletionListener,
         AudioManager.OnAudioFocusChangeListener{
 
-    //public constants
+    //actions
     public static final String ACTION_PLAY = "com.julie.spotifystreamer.action.PLAY";
     public static final String ACTION_STOP = "com.julie.spotifystreamer.action.STOP";
     public static final String ACTION_CHANGE_TRACK = "com.julie.spotifystreamer.action.CHANGE_TRACK";
     public static final String ACTION_PREVIOUS = "com.julie.spotifystreamer.action.PREVIOUS";
-    public static final String ACTION_NEXT = "com.julie.spotifystreamer.action.PREVIOUS";
+    public static final String ACTION_NEXT = "com.julie.spotifystreamer.action.NEXT";
     public static final String ACTION_PAUSE = "com.julie.spotifystreamer.action.PAUSE";
+    public static final String ACTION_RESUME = "com.julie.spotifystreamer.action.RESUME";
+    //arguments
     public static final String ARG_TRACK_NAME = "songName";
     public static final String ARG_URI = "uri";
     public static final String ARG_ALBUM_ART = "albumArt";
+    public static final String ARG_TRACK_LIST = "trackList";
+    public static final String ARG_TRACK_LIST_POSITION = "trackListPosition";
     //receiver constants
     public static final String RESULT_RECEIVER = "resultReceiver";
     public static final int PREPARED = 22;
     public static final int COMPLETE = 33;
+    public static final int TRACK_CHANGE = 44;
 
     //private constants
     private static final String LOG_TAG = MediaPlayerService.class.getSimpleName();
@@ -62,10 +70,6 @@ public class MediaPlayerService extends Service implements MediaPlayer.OnPrepare
 
     //private internals
     private MediaPlayer mMediaPlayer = null;
-    private String mUriString;
-    private String mTrackName;
-    private String mAlbumArtURL;
-    private Bitmap mAlbumArt;
     private WifiManager.WifiLock mWifiLock;
     private final IBinder mBinder = new MediaPlayerBinder();
     private AudioManager mAudioManager;
@@ -73,6 +77,9 @@ public class MediaPlayerService extends Service implements MediaPlayer.OnPrepare
     private Boolean isPrepared = false;
     private int duration = 0;
     private ResultReceiver resultReceiver;
+    private ArrayList<TrackContent> mTrackList;
+    private TrackContent mCurrentTrack;
+    private int mTrackListPosition;
 
     //handle audio focus changes by pausing/resuming/adjusting audio as is appropriate
     @Override
@@ -103,10 +110,9 @@ public class MediaPlayerService extends Service implements MediaPlayer.OnPrepare
     public int onStartCommand(Intent intent, int flags, int startId) {
         switch (intent.getAction()) {
             case ACTION_PLAY:
-                mUriString = intent.getStringExtra(ARG_URI);
-                mTrackName = intent.getStringExtra(ARG_TRACK_NAME);
-                mAlbumArtURL = intent.getStringExtra(ARG_ALBUM_ART);
-
+                mTrackList = intent.getParcelableArrayListExtra(ARG_TRACK_LIST);
+                mTrackListPosition = intent.getIntExtra(ARG_TRACK_LIST_POSITION, 0);
+                mCurrentTrack = mTrackList.get(mTrackListPosition);
                 mAudioManager = (AudioManager) getSystemService(Context.AUDIO_SERVICE);
                 int result = mAudioManager.requestAudioFocus(this, AudioManager.STREAM_MUSIC,
                         AudioManager.AUDIOFOCUS_GAIN);
@@ -121,8 +127,31 @@ public class MediaPlayerService extends Service implements MediaPlayer.OnPrepare
                 resultReceiver = intent.getParcelableExtra(RESULT_RECEIVER);
                 break;
 
+            case ACTION_NEXT:
+                if (mTrackList != null) {
+                    mTrackListPosition = (mTrackListPosition + 1) % mTrackList.size();
+                    mCurrentTrack = mTrackList.get(mTrackListPosition);
+                    changeTrack();
+                }
+                break;
+
+            case ACTION_PREVIOUS:
+                if (mTrackList != null) {
+                    mTrackListPosition --;
+                    if (mTrackListPosition < 0) {
+                        mTrackListPosition = mTrackList.size() -1;
+                    }
+                    mCurrentTrack = mTrackList.get(mTrackListPosition);
+                    changeTrack();
+                }
+                break;
+
             case ACTION_PAUSE:
                 onPause();
+                break;
+
+            case ACTION_RESUME:
+                onResume();
                 break;
 
             case ACTION_STOP:
@@ -133,20 +162,27 @@ public class MediaPlayerService extends Service implements MediaPlayer.OnPrepare
             //because setDataSource() called in any other state throws an IllegalStateException
             case ACTION_CHANGE_TRACK:
                 //if the media player exists it needs to be reset.
-                if (mMediaPlayer != null) {
-                    mMediaPlayer.reset();
-                }
-                mUriString = intent.getStringExtra(ARG_URI);
-                mTrackName = intent.getStringExtra(ARG_TRACK_NAME);
-                initMediaPlayer();
-                initNotification();
+                changeTrack();
                 break;
 
             default:
                 Log.e(LOG_TAG, "Unrecognized intent action called for:  " + intent.getAction());
                 break;
         }
-        return 0;
+        return START_STICKY;
+    }
+
+    public void changeTrack()
+    {
+        //tell the activity to update its fragment with the new track
+        resultReceiver.send(TRACK_CHANGE, new Bundle());
+        //to change the data source on a media player you must call reset
+        //because setDataSource() called in any other state throws an IllegalStateException
+        if (mMediaPlayer != null) {
+            mMediaPlayer.reset();
+        }
+        initMediaPlayer();
+        initNotification();
     }
 
     //make the service a foreground service by creating a notification for the status bar.
@@ -173,7 +209,7 @@ public class MediaPlayerService extends Service implements MediaPlayer.OnPrepare
                 new NotificationCompat.Builder(getApplicationContext())
                         .setContentTitle(getString(R.string.now_playing))
                         .setSmallIcon(R.drawable.ic_queue_music_black_24dp)
-                        .setContentText(mTrackName)
+                        .setContentText(mCurrentTrack.getTrackName())
                         .setContentIntent(pendingIntent)
                         .setDeleteIntent(deleteIntent)
                         .addAction(R.drawable.ic_skip_previous_black_24dp, "Previous", generatePendingIntent(MediaPlayerService.ACTION_PREVIOUS))
@@ -181,6 +217,7 @@ public class MediaPlayerService extends Service implements MediaPlayer.OnPrepare
                         .addAction(R.drawable.ic_skip_next_black_24dp, "Next", generatePendingIntent(MediaPlayerService.ACTION_NEXT))
                         .setVisibility(Notification.VISIBILITY_PUBLIC);
         Notification notification = mNotificationBuilder.build();
+        new LoadThumbnailTask().execute();
 
         NotificationManager mNotificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
         mNotificationManager.notify(mNotificationId, notification);
@@ -202,10 +239,16 @@ public class MediaPlayerService extends Service implements MediaPlayer.OnPrepare
     //update the notification with the appropriate track name
     private void updateNotification() {
         NotificationManager mNotificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
-        mNotificationBuilder.setContentText(mTrackName);
+        mNotificationBuilder.setContentText(mCurrentTrack.getTrackName());
         mNotificationManager.notify(mNotificationId, mNotificationBuilder.build());
     }
 
+    private void updateNotificationThumbnail(Bitmap image)
+    {
+        NotificationManager mNotificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+        mNotificationBuilder.setLargeIcon(image);
+        mNotificationManager.notify(mNotificationId, mNotificationBuilder.build());
+    }
 
     //the media player has completed playback.  release resources
     @Override
@@ -237,7 +280,7 @@ public class MediaPlayerService extends Service implements MediaPlayer.OnPrepare
 
     //parses the music URI from the URI String and attempts to set the data source.
     private void setPlayerDataSource() {
-        Uri musicUri = Uri.parse(mUriString);
+        Uri musicUri = Uri.parse(mCurrentTrack.getPreviewURL());
         //setDataSource has the potential to throw IllegalArgumentException or IOException
         try {
             mMediaPlayer.setDataSource(this, musicUri);
@@ -338,6 +381,13 @@ public class MediaPlayerService extends Service implements MediaPlayer.OnPrepare
         return mBinder;
     }
 
+    @Override
+    public boolean onUnbind(Intent intent) {
+        onStop();
+        return false;
+    }
+
+
     //https://stackoverflow.com/questions/17731527/how-to-implement-a-mediaplayer-restart-on-errors-in-android
     @Override
     public boolean onError(MediaPlayer mp, int what, int extra) {
@@ -385,4 +435,33 @@ public class MediaPlayerService extends Service implements MediaPlayer.OnPrepare
         return isPrepared;
     }
 
+    public void setList(ArrayList<TrackContent> list, int position) {
+        mTrackList = list;
+        mTrackListPosition = position;
+    }
+
+    public TrackContent getCurrentTrack() {
+        return mCurrentTrack;
+    }
+
+    //This task loads the bitmap for the notification image in the background, and updates
+    //the notification once it has been loaded in.
+    private class LoadThumbnailTask extends AsyncTask<Void, Void, Bitmap> {
+        @Override
+        protected Bitmap doInBackground (Void... params) {
+            try {
+                return Picasso.with(getApplicationContext()).load(mCurrentTrack.getThumbnailURL()).get();
+            } catch (IOException e) {
+                Log.e(LOG_TAG, "Failed to load thumbnail for track");
+            }
+            return null;
+        }
+
+        @Override
+        protected void onPostExecute(Bitmap result) {
+            if (result != null) {
+                updateNotificationThumbnail(result);
+            }
+        }
+    }
 }

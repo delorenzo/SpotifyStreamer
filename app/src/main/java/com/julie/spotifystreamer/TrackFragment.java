@@ -2,8 +2,10 @@ package com.julie.spotifystreamer;
 
 import android.app.Activity;
 import android.content.Context;
+import android.content.SharedPreferences;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.preference.PreferenceManager;
 import android.support.v4.app.Fragment;
 import android.support.v7.app.ActionBar;
 import android.support.v7.app.AppCompatActivity;
@@ -50,7 +52,6 @@ public class TrackFragment extends Fragment implements AbsListView.OnItemClickLi
     private static final String ARG_SPOTIFY_ID = "spotifyId";
     private static final String ARG_ARTIST = "artist";
     private static final String ARG_TRACK_LIST = "trackList";
-    private static final String COUNTRY_CODE = "US";
     private static final String LOG_TAG = TrackFragment.class.getSimpleName();
 
     public static TrackFragment newInstance(String spotifyId, String artist) {
@@ -180,6 +181,12 @@ public class TrackFragment extends Fragment implements AbsListView.OnItemClickLi
         }
     }
 
+    public static String getPreferredCountryCode(Context context) {
+        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(context);
+        return prefs.getString(context.getString(R.string.pref_country_code_key),
+                context.getString(R.string.pref_country_code_default));
+    }
+
     /**
      * This interface must be implemented by activities that contain this
      * fragment to allow an interaction in this fragment to be communicated
@@ -206,7 +213,7 @@ public class TrackFragment extends Fragment implements AbsListView.OnItemClickLi
         protected ArrayList<TrackContent> doInBackground(String... params) {
             if (mSpotifyId == null) { return null; }
             Hashtable<String, Object> optionsMap = new Hashtable<>();
-            optionsMap.put(SpotifyService.COUNTRY, COUNTRY_CODE);
+            optionsMap.put(SpotifyService.COUNTRY, getPreferredCountryCode(getActivity()));
             try {
                 mTrackList = new ArrayList<>();
                 Tracks tracks = mSpotifyService.getArtistTopTrack(mSpotifyId, optionsMap);
@@ -255,6 +262,13 @@ public class TrackFragment extends Fragment implements AbsListView.OnItemClickLi
                     mToast.cancel();
                 }
                 mToast = Toast.makeText(mContext, errorMessage, Toast.LENGTH_SHORT);
+                mToast.show();
+            }
+            else {
+                if (mToast != null) {
+                    mToast.cancel();
+                }
+                mToast = Toast.makeText(mContext, "Top tracks for this artist not found.  Please refine your search.", Toast.LENGTH_SHORT);
                 mToast.show();
             }
         }

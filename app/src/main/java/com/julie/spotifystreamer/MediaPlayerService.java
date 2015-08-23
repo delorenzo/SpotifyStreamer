@@ -1,17 +1,17 @@
 package com.julie.spotifystreamer;
 
+import android.app.IntentService;
 import android.app.Notification;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.app.Service;
+import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.graphics.Bitmap;
 import android.media.AudioManager;
-import android.media.MediaMetadata;
 import android.media.MediaPlayer;
-import android.media.session.MediaSession;
-import android.media.session.MediaSessionManager;
 import android.net.Uri;
 import android.net.wifi.WifiManager;
 import android.os.AsyncTask;
@@ -20,8 +20,13 @@ import android.os.Bundle;
 import android.os.IBinder;
 import android.os.PowerManager;
 import android.os.ResultReceiver;
-import android.support.v4.app.NotificationCompat;
+import android.preference.PreferenceManager;
+import android.support.v4.media.session.MediaControllerCompat;
+import android.support.v4.media.session.MediaSessionCompat;
+import android.support.v4.media.session.PlaybackStateCompat;
+import android.support.v7.app.NotificationCompat;
 import android.util.Log;
+import android.view.KeyEvent;
 
 import com.julie.spotifystreamer.DataContent.TrackContent;
 import com.julie.spotifystreamer.Receivers.RemoteControlReceiver;
@@ -51,6 +56,7 @@ public class MediaPlayerService extends Service implements MediaPlayer.OnPrepare
     public static final String ACTION_NEXT = "com.julie.spotifystreamer.action.NEXT";
     public static final String ACTION_PAUSE = "com.julie.spotifystreamer.action.PAUSE";
     public static final String ACTION_RESUME = "com.julie.spotifystreamer.action.RESUME";
+    public static final String ACTION_PLAY_PAUSE = "com.julie.spotifystreamer.action.PLAY_PAUSE";
     //arguments
     public static final String ARG_TRACK_NAME = "songName";
     public static final String ARG_URI = "uri";
@@ -67,16 +73,21 @@ public class MediaPlayerService extends Service implements MediaPlayer.OnPrepare
     private static final String LOG_TAG = MediaPlayerService.class.getSimpleName();
     private static final String WIFI_LOCK_TAG = "mediaPlayerWifiLock";
     private static final int mNotificationId = 1;
+    private static final String MEDIASESSION_TAG = "mediaSession";
+    private static final float MAX_VOLUME = 1.0f;
+    private static final float MIN_VOLUME = 0.1f;
 
     //private internals
     private MediaPlayer mMediaPlayer = null;
+    private MediaSessionCompat mSession;
+    private MediaControllerCompat.TransportControls mTransportController;
     private WifiManager.WifiLock mWifiLock;
     private final IBinder mBinder = new MediaPlayerBinder();
     private AudioManager mAudioManager;
     private NotificationCompat.Builder mNotificationBuilder;
+    private ResultReceiver resultReceiver;
     private Boolean isPrepared = false;
     private int duration = 0;
-    private ResultReceiver resultReceiver;
     private ArrayList<TrackContent> mTrackList;
     private TrackContent mCurrentTrack;
     private int mTrackListPosition;
@@ -89,18 +100,18 @@ public class MediaPlayerService extends Service implements MediaPlayer.OnPrepare
                 if (mMediaPlayer == null) {
                     initMediaPlayer();
                 }
-                onResume();
-                mMediaPlayer.setVolume(1.0f, 1.0f);
+                resume();
+                mMediaPlayer.setVolume(MAX_VOLUME, MAX_VOLUME);
                 break;
             case AudioManager.AUDIOFOCUS_LOSS:
-                onStop();
+                stop();
                 break;
             case AudioManager.AUDIOFOCUS_LOSS_TRANSIENT:
-                onPause();
+                pause();
                 break;
             case AudioManager.AUDIOFOCUS_LOSS_TRANSIENT_CAN_DUCK:
                 if (mMediaPlayer.isPlaying()) {
-                    mMediaPlayer.setVolume(0.1f, 0.1f);
+                    mMediaPlayer.setVolume(MIN_VOLUME, MIN_VOLUME);
                 }
                 break;
         }
@@ -108,6 +119,9 @@ public class MediaPlayerService extends Service implements MediaPlayer.OnPrepare
 
     // The service is starting, due to a call to startService()
     public int onStartCommand(Intent intent, int flags, int startId) {
+        if (intent == null) {
+            return START_NOT_STICKY;
+        }
         switch (intent.getAction()) {
             case ACTION_PLAY:
                 mTrackList = intent.getParcelableArrayListExtra(ARG_TRACK_LIST);
@@ -128,34 +142,33 @@ public class MediaPlayerService extends Service implements MediaPlayer.OnPrepare
                 break;
 
             case ACTION_NEXT:
-                if (mTrackList != null) {
-                    mTrackListPosition = (mTrackListPosition + 1) % mTrackList.size();
-                    mCurrentTrack = mTrackList.get(mTrackListPosition);
-                    changeTrack();
-                }
+                skipToNext();
                 break;
 
             case ACTION_PREVIOUS:
-                if (mTrackList != null) {
-                    mTrackListPosition --;
-                    if (mTrackListPosition < 0) {
-                        mTrackListPosition = mTrackList.size() -1;
-                    }
-                    mCurrentTrack = mTrackList.get(mTrackListPosition);
-                    changeTrack();
-                }
+                skipToPrevious();
                 break;
 
             case ACTION_PAUSE:
-                onPause();
+                pause();
                 break;
 
             case ACTION_RESUME:
-                onResume();
+                resume();
+                break;
+
+            case ACTION_PLAY_PAUSE:
+                if (mMediaPlayer != null) {
+                    if (mMediaPlayer.isPlaying()) {
+                        pause();
+                    } else {
+                        resume();
+                    }
+                }
                 break;
 
             case ACTION_STOP:
-                onStop();
+                stop();
                 break;
 
             //to change the data source on a media player you must call reset
@@ -169,7 +182,26 @@ public class MediaPlayerService extends Service implements MediaPlayer.OnPrepare
                 Log.e(LOG_TAG, "Unrecognized intent action called for:  " + intent.getAction());
                 break;
         }
-        return START_STICKY;
+        return START_REDELIVER_INTENT;
+    }
+
+    public void skipToNext() {
+        if (mTrackList != null) {
+            mTrackListPosition = (mTrackListPosition + 1) % mTrackList.size();
+            mCurrentTrack = mTrackList.get(mTrackListPosition);
+            changeTrack();
+        }
+    }
+
+    public void skipToPrevious() {
+        if (mTrackList != null) {
+            mTrackListPosition --;
+            if (mTrackListPosition < 0) {
+                mTrackListPosition = mTrackList.size() -1;
+            }
+            mCurrentTrack = mTrackList.get(mTrackListPosition);
+            changeTrack();
+        }
     }
 
     public void changeTrack()
@@ -191,34 +223,75 @@ public class MediaPlayerService extends Service implements MediaPlayer.OnPrepare
                 new Intent(getApplicationContext(), TrackPlayerActivity.class),
                 PendingIntent.FLAG_UPDATE_CURRENT);
 
-        Intent stopIntent = new Intent(getApplicationContext(), MediaPlayerService.class);
-        stopIntent.setAction(MediaPlayerService.ACTION_STOP);
-        PendingIntent deleteIntent = PendingIntent.getService(getApplicationContext(), 1, stopIntent, 0);
+        String playPauseString;
+        int playPauseIcon;
+        if (mMediaPlayer != null && mMediaPlayer.isPlaying()) {
+            playPauseIcon = R.drawable.ic_pause_black_24dp;
+            playPauseString = getString(R.string.msg_pause);
+        }
+        else {
+            playPauseIcon = R.drawable.ic_play_arrow_black_24dp;
+            playPauseString = getString(R.string.msg_resume);
+        }
 
-        Intent intent = new Intent(this, MediaPlayerService.class);
-        intent.setAction(MediaPlayerService.ACTION_PAUSE);
-        PendingIntent pausePendingIntent =
-                PendingIntent.getActivity(
-                        getApplicationContext(),
-                        0,
-                        intent,
-                        PendingIntent.FLAG_UPDATE_CURRENT
-                );
+        //show lockscreen controls on pre-21 devices using MediaSessionCompat
+        //see:
+        //http://codeengine.org/media-session-compat-not-showing-lockscreen-controls-on-pre-lollipop/
+        //https://developer.android.com/reference/android/support/v4/media/session/MediaSessionCompat.html
+        //https://developer.android.com/reference/android/support/v7/app/NotificationCompat.MediaStyle.html
+        //https://developer.android.com/training/managing-audio/volume-playback.html
+        //https://developer.android.com/guide/topics/ui/notifiers/notifications.html#controllingMedia
+        ComponentName mRemoteControlReceiver = new ComponentName(getPackageName(),
+                RemoteControlReceiver.class.getName());
+        final Intent mediaButtonIntent = new Intent(Intent.ACTION_MEDIA_BUTTON);
+        mediaButtonIntent.setComponent(mRemoteControlReceiver);
+        mSession = new MediaSessionCompat(getApplicationContext(), MEDIASESSION_TAG,
+                mRemoteControlReceiver, null);
+        mSession.setFlags(MediaSessionCompat.FLAG_HANDLES_MEDIA_BUTTONS | MediaSessionCompat.FLAG_HANDLES_TRANSPORT_CONTROLS);
+        PlaybackStateCompat mPlaybackState = new PlaybackStateCompat.Builder()
+                .setActions(
+                    PlaybackStateCompat.ACTION_PLAY |
+                    PlaybackStateCompat.ACTION_PAUSE |
+                    PlaybackStateCompat.ACTION_SKIP_TO_NEXT |
+                    PlaybackStateCompat.ACTION_SKIP_TO_PREVIOUS)
+                .setState(
+                        mMediaPlayer.isPlaying() ? PlaybackStateCompat.STATE_PLAYING : PlaybackStateCompat.STATE_PAUSED,
+                        mMediaPlayer.getCurrentPosition(),
+                        MAX_VOLUME)
+                .build();
+        mSession.setPlaybackState(mPlaybackState);
+        mSession.setCallback(mMediaSessionCallback);
+        mSession.setActive(true);
+
+        //set visibility from shared preferences
+        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
+        Boolean showOnLockScreen = Boolean.parseBoolean(prefs.getString(getApplicationContext().getString(R.string.pref_country_code_key),
+                getApplicationContext().getString(R.string.pref_country_code_default)));
+        int visbility = showOnLockScreen ? NotificationCompat.VISIBILITY_PUBLIC : NotificationCompat.VISIBILITY_PRIVATE;
 
         mNotificationBuilder =
-                new NotificationCompat.Builder(getApplicationContext())
+                //for some reason this seems to need casting or the v4 notificationcompat is returned
+                //v7 notificationcompat is required to use MediaStyle
+                (android.support.v7.app.NotificationCompat.Builder)new NotificationCompat.Builder(getApplicationContext())
+                        //set preferred visbility
+                        .setVisibility(visbility)
+                        //add media control buttons
+                        .addAction(R.drawable.ic_skip_previous_black_24dp,
+                                getString(R.string.msg_previous),
+                                generatePendingIntent(MediaPlayerService.ACTION_PREVIOUS))
+                        .addAction(playPauseIcon, playPauseString,
+                                generatePendingIntent(MediaPlayerService.ACTION_PLAY_PAUSE))
+                        .addAction(R.drawable.ic_skip_next_black_24dp, getString(R.string.msg_next),
+                                generatePendingIntent(MediaPlayerService.ACTION_NEXT))
+                        //set media style
+                        .setStyle(new NotificationCompat.MediaStyle().setMediaSession(mSession.getSessionToken()))
                         .setContentTitle(getString(R.string.now_playing))
                         .setSmallIcon(R.drawable.ic_queue_music_black_24dp)
-                        .setContentText(mCurrentTrack.getTrackName())
-                        .setContentIntent(pendingIntent)
-                        .setDeleteIntent(deleteIntent)
-                        .addAction(R.drawable.ic_skip_previous_black_24dp, "Previous", generatePendingIntent(MediaPlayerService.ACTION_PREVIOUS))
-                        .addAction(R.drawable.ic_pause_black_24dp, "Pause", generatePendingIntent(MediaPlayerService.ACTION_PAUSE))
-                        .addAction(R.drawable.ic_skip_next_black_24dp, "Next", generatePendingIntent(MediaPlayerService.ACTION_NEXT))
-                        .setVisibility(Notification.VISIBILITY_PUBLIC);
+                        .setContentText(mCurrentTrack.getTrackName());
         Notification notification = mNotificationBuilder.build();
         new LoadThumbnailTask().execute();
 
+        mTransportController = mSession.getController().getTransportControls();
         NotificationManager mNotificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
         mNotificationManager.notify(mNotificationId, notification);
 
@@ -236,8 +309,9 @@ public class MediaPlayerService extends Service implements MediaPlayer.OnPrepare
                 );
     }
 
+
     //update the notification with the appropriate track name
-    private void updateNotification() {
+    private void updateNotificationText() {
         NotificationManager mNotificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
         mNotificationBuilder.setContentText(mCurrentTrack.getTrackName());
         mNotificationManager.notify(mNotificationId, mNotificationBuilder.build());
@@ -277,7 +351,6 @@ public class MediaPlayerService extends Service implements MediaPlayer.OnPrepare
         
         setPlayerDataSource();
     }
-
     //parses the music URI from the URI String and attempts to set the data source.
     private void setPlayerDataSource() {
         Uri musicUri = Uri.parse(mCurrentTrack.getPreviewURL());
@@ -294,17 +367,40 @@ public class MediaPlayerService extends Service implements MediaPlayer.OnPrepare
         }
     }
 
+    //either pause or resume playback based on the current state of the media player
+    public void playPause() {
+        if (mMediaPlayer != null) {
+            if (mMediaPlayer.isPlaying()) {
+                pause();
+            } else {
+                resume();
+            }
+        }
+    }
+
     //pause - transient audio focus loss
     //note we need to release the wifi lock and not the cpu lock because the MediaPlayer will handle that for us.
-    public void onPause()
+    public void pause()
     {
         mMediaPlayer.pause();
         releaseWifiLock();
     }
 
+    //resume - recover from from transient audio focus loss
+    public void resume()
+    {
+        acquireWifiLock();
+        if (mMediaPlayer == null) {
+            initMediaPlayer();
+        }
+        if (!mMediaPlayer.isPlaying()) {
+            mMediaPlayer.start();
+        }
+    }
+
     //stop - indetermined length of audio focus loss.  release resources
     //note we need to release the wifi lock and not the cpu lock because the MediaPlayer will handle that for us.
-    public void onStop()
+    public void stop()
     {
         //sometimes onStop() is called with a media player that doesn't exist
         if (mMediaPlayer != null) {
@@ -320,19 +416,6 @@ public class MediaPlayerService extends Service implements MediaPlayer.OnPrepare
         stopSelf();
     }
 
-    //resume - recover from from transient audio focus loss
-    public void onResume()
-    {
-        acquireWifiLock();
-        if (mMediaPlayer == null) {
-            initMediaPlayer();
-        }
-        if (!mMediaPlayer.isPlaying()) {
-            mMediaPlayer.start();
-        }
-    }
-
-    //release the wifi lock
     private void releaseWifiLock() {
         if (mWifiLock != null) {
             mWifiLock.release();
@@ -370,9 +453,10 @@ public class MediaPlayerService extends Service implements MediaPlayer.OnPrepare
     //the service is being destroyed.  release resources
     @Override
     public void onDestroy() {
-        onStop();
+        stop();
         NotificationManager mNotificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
         mNotificationManager.cancel(mNotificationId);
+        mSession.release();
     }
 
     // A client is binding to the service with bindService()
@@ -383,7 +467,6 @@ public class MediaPlayerService extends Service implements MediaPlayer.OnPrepare
 
     @Override
     public boolean onUnbind(Intent intent) {
-        onStop();
         return false;
     }
 
@@ -464,4 +547,73 @@ public class MediaPlayerService extends Service implements MediaPlayer.OnPrepare
             }
         }
     }
+
+
+    private final MediaSessionCompat.Callback mMediaSessionCallback = new MediaSessionCompat.Callback() {
+        @Override
+        public boolean onMediaButtonEvent(Intent intent) {
+            if (intent.getAction().equals(
+                    AudioManager.ACTION_AUDIO_BECOMING_NOISY)) {
+                onPause();
+            } else if (Intent.ACTION_MEDIA_BUTTON.equals(intent.getAction())) {
+                KeyEvent event = intent.getParcelableExtra(Intent.EXTRA_KEY_EVENT);
+                switch (event.getKeyCode()) {
+                    case KeyEvent.KEYCODE_MEDIA_PLAY:
+                        mTransportController.play();
+                        break;
+                    case KeyEvent.KEYCODE_MEDIA_PAUSE:
+                        mTransportController.pause();
+                        onPause();
+                        break;
+                    case KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE:
+                        if (mMediaPlayer.isPlaying()) {
+                            mTransportController.pause();
+                        }
+                        else {
+                            mTransportController.play();
+                        }
+                        break;
+                    case KeyEvent.KEYCODE_MEDIA_NEXT:
+                        mTransportController.skipToNext();
+                        break;
+                    case KeyEvent.KEYCODE_MEDIA_PREVIOUS:
+                        mTransportController.skipToPrevious();
+                        break;
+                    default:
+                        Log.e(LOG_TAG, "Unhandled key event detected:  " + event.getKeyCode());
+                        break;
+                }
+            }
+            return super.onMediaButtonEvent(intent);
+        }
+
+        @Override
+         public void onPlay() {
+            super.onPlay();
+            resume();
+        }
+
+        @Override
+        public void onPause() {
+            super.onPause();
+            pause();
+        }
+
+        @Override
+        public void onSkipToNext() {
+            super.onSkipToNext();
+            skipToNext();
+        }
+
+        @Override
+        public void onSkipToPrevious() {
+            super.onSkipToPrevious();
+        }
+
+        @Override
+        public void onStop() {
+            super.onStop();
+            stop();
+        }
+    };
 }

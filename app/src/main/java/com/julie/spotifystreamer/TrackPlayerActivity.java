@@ -62,8 +62,6 @@ public class TrackPlayerActivity extends AppCompatActivity
             mTrackList = getIntent().getParcelableArrayListExtra(ARG_TRACK_LIST);
             mTrackContent = mTrackList.get(mTrackListPosition);
             mTablet = getIntent().getBooleanExtra(ARG_TABLET, false);
-
-            startMusicPlayerService(MediaPlayerService.ACTION_PLAY);
             
             TrackPlayerFragment fragment = TrackPlayerFragment.newInstance(mTrackContent);
 
@@ -84,6 +82,7 @@ public class TrackPlayerActivity extends AppCompatActivity
                         .replace(R.id.player_container, fragment, TRACKPLAYER_TAG)
                         .commit();
             }
+            startMusicPlayerService(MediaPlayerService.ACTION_PLAY);
         }
         else {
             Intent playIntent = new Intent(this, MediaPlayerService.class);
@@ -157,15 +156,18 @@ public class TrackPlayerActivity extends AppCompatActivity
             // bind to the MediaPlayerService and get the instance of MediaPlayerService
             MediaPlayerService.MediaPlayerBinder binder = (MediaPlayerService.MediaPlayerBinder) service;
             mService = binder.getService();
-            mService.setList(mTrackList, mTrackListPosition);
             mBound = true;
             isPlaying = true;
+            if (mService.isPrepared()) {
+                new UpdateProgressTask().execute();
+            }
         }
 
         @Override
         public void onServiceDisconnected(ComponentName arg0) {
             Log.e(LOG_TAG, "Service disconnected unexpectedly");
             mBound = false;
+            mService = null;
             isPlaying = false;
         }
     };
@@ -173,7 +175,7 @@ public class TrackPlayerActivity extends AppCompatActivity
 
     public void pausePlayer(View view) {
         if (mService != null) {
-            mService.onPause();
+            mService.pause();
         }
         TrackPlayerFragment fragment = (TrackPlayerFragment)getSupportFragmentManager().
                 findFragmentByTag(TRACKPLAYER_TAG);
@@ -184,7 +186,7 @@ public class TrackPlayerActivity extends AppCompatActivity
 
     public void resumePlayer(View view) {
         if (mService != null) {
-            mService.onResume();
+            mService.resume();
         }
         TrackPlayerFragment fragment = (TrackPlayerFragment)getSupportFragmentManager().
                 findFragmentByTag(TRACKPLAYER_TAG);
@@ -196,39 +198,23 @@ public class TrackPlayerActivity extends AppCompatActivity
     public void skipNextPlayer(View view) {
         isPlaying = false;
         mCurrentPos = 0;
-
-//        //increment track list position and update current track
-//        mTrackListPosition = mTrackListPosition + 1 % mTrackList.size();
-//        mTrackContent = mTrackList.get(mTrackListPosition);
-
-        //restart playback
+        //if the track is paused and the user skips to next, we want the track to start
+        //playing and the pause button to be displayed again.
+        TrackPlayerFragment fragment = (TrackPlayerFragment)getSupportFragmentManager().
+                findFragmentByTag(TRACKPLAYER_TAG);
+        fragment.showPauseButton();
         startMusicPlayerService(MediaPlayerService.ACTION_NEXT);
-
-        //update UI
-//        TrackPlayerFragment fragment = (TrackPlayerFragment)getSupportFragmentManager().
-//                findFragmentByTag(TRACKPLAYER_TAG);
-//        if (fragment != null) {
-//            fragment.updateDisplayedTrack(mService.getCurrentTrack());
-//        }
     }
 
     public void skipPreviousPlayer(View view) {
         isPlaying = false;
         mCurrentPos = 0;
-
-//        //decrement track list position and update current track
-//        mTrackListPosition = mTrackListPosition - 1 % mTrackList.size();
-//        mTrackContent = mTrackList.get(mTrackListPosition);
-
-        //restart playback
+        //if the track is paused and the user skips to next, we want the track to start
+        //playing and the pause button to be displayed again.
+        TrackPlayerFragment fragment = (TrackPlayerFragment)getSupportFragmentManager().
+                findFragmentByTag(TRACKPLAYER_TAG);
+        fragment.showPauseButton();
         startMusicPlayerService(MediaPlayerService.ACTION_PREVIOUS);
-
-        //update UI
-//        TrackPlayerFragment fragment = (TrackPlayerFragment)getSupportFragmentManager().
-//                findFragmentByTag(TRACKPLAYER_TAG);
-//        if (fragment != null) {
-//            fragment.updateDisplayedTrack(mService.getCurrentTrack());
-//        }
     }
 
     ///asynchronous task that polls the media player for its progress
@@ -236,6 +222,7 @@ public class TrackPlayerActivity extends AppCompatActivity
     private class UpdateProgressTask extends AsyncTask<Integer, Integer, Integer> {
         protected Integer doInBackground(Integer ... args) {
             int currentPos = 0;
+            mDuration = mService.getDuration();
             try {
                 while (currentPos < mDuration && isPlaying && mBound) {
                     if (mBound && mService.isPrepared()) {
@@ -254,7 +241,9 @@ public class TrackPlayerActivity extends AppCompatActivity
         protected void onProgressUpdate (Integer ... progress) {
             TrackPlayerFragment fragment = (TrackPlayerFragment)getSupportFragmentManager().
                     findFragmentByTag(TRACKPLAYER_TAG);
-            fragment.updateProgress(progress[0]);
+            if (fragment != null) {
+                fragment.updateProgress(progress[0]);
+            }
         }
     }
 
@@ -266,6 +255,9 @@ public class TrackPlayerActivity extends AppCompatActivity
         protected void onReceiveResult(int resultCode, Bundle resultData) {
             TrackPlayerFragment fragment = (TrackPlayerFragment) getSupportFragmentManager().
                     findFragmentByTag(TRACKPLAYER_TAG);
+            if (fragment == null) {
+                return;
+            }
             switch (resultCode) {
                 case MediaPlayerService.PREPARED:
                     isPlaying = true;

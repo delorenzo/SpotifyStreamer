@@ -1,17 +1,21 @@
 package com.julie.spotifystreamer;
 
 import android.app.Activity;
+import android.content.Intent;
 import android.support.v4.app.DialogFragment;
-import android.support.v4.app.Fragment;
 import android.os.Bundle;
+import android.support.v4.view.MenuItemCompat;
 import android.util.Log;
 import android.view.LayoutInflater;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageButton;
 import android.widget.ImageView;
-import android.widget.ProgressBar;
 import android.widget.SeekBar;
+import android.support.v7.widget.ShareActionProvider;
 import android.widget.TextView;
 
 import com.julie.spotifystreamer.DataContent.TrackContent;
@@ -25,15 +29,18 @@ public class TrackPlayerFragment extends DialogFragment {
     private static final String ARG_TRACK = "track";
     private static final String ARG_TRACK_DURATION = "trackDuration";
     private static final String ARG_SEEKBAR_POSITION = "seekBarPos";
+    private static final String ARG_RESUME = "showPause";
     private TrackContent mTrackContent;
     private ImageButton mPauseButton;
     private ImageButton mResumeButton;
     private SeekBar mSeekBar;
     //this variable blocks the seek bar from advancing when the user is adjusting it
     private Boolean mDragging = false;
+    private Boolean resumeVisible = false;
     OnSeekBarUserUpdateListener mCallBack;
     private int mDuration = 0;
     private int mPosition = 0;
+    private ShareActionProvider mShareActionProvider;
 
     public TrackPlayerFragment() {
     }
@@ -82,9 +89,26 @@ public class TrackPlayerFragment extends DialogFragment {
         mPauseButton = (ImageButton) view.findViewById(R.id.button_pause);
         mResumeButton = (ImageButton) view.findViewById(R.id.button_play);
 
+        //the pause button is shown by default
+        if (resumeVisible) {
+            showResumeButton();
+        }
+
         setupDisplayedTrack(view);
 
         return view;
+    }
+
+    @Override
+    public void onCreateOptionsMenu(Menu menu, MenuInflater inflater) {
+        inflater.inflate(R.menu.menu_track_player, menu);
+
+        MenuItem menuItem = menu.findItem(R.id.action_share);
+
+        mShareActionProvider = (ShareActionProvider) MenuItemCompat.getActionProvider(menuItem);
+        if (mTrackContent != null) {
+            mShareActionProvider.setShareIntent(createShareSpotifyURLIntent());
+        }
     }
 
     //set up the display from the current track
@@ -136,6 +160,7 @@ public class TrackPlayerFragment extends DialogFragment {
         outState.putParcelable(ARG_TRACK, mTrackContent);
         outState.putInt(ARG_SEEKBAR_POSITION, mPosition);
         outState.putInt(ARG_TRACK_DURATION, mDuration);
+        outState.putBoolean(ARG_RESUME, resumeVisible);
     }
 
     @Override
@@ -146,8 +171,8 @@ public class TrackPlayerFragment extends DialogFragment {
             mTrackContent = savedInstanceState.getParcelable(ARG_TRACK);
             mPosition = savedInstanceState.getInt(ARG_SEEKBAR_POSITION);
             mDuration = savedInstanceState.getInt(ARG_TRACK_DURATION);
+            resumeVisible = savedInstanceState.getBoolean(ARG_RESUME);
             setupProgressBar(mDuration, mPosition);
-            setupDisplayedTrack(this.getView());
         }
     }
 
@@ -162,6 +187,7 @@ public class TrackPlayerFragment extends DialogFragment {
     public void showResumeButton()
     {
         mPauseButton.setVisibility(View.GONE);
+        resumeVisible = false;
         mResumeButton.setVisibility(View.VISIBLE);
     }
 
@@ -169,6 +195,7 @@ public class TrackPlayerFragment extends DialogFragment {
     public void showPauseButton()
     {
         mPauseButton.setVisibility(View.VISIBLE);
+        resumeVisible = true;
         mResumeButton.setVisibility(View.GONE);
     }
 
@@ -201,6 +228,13 @@ public class TrackPlayerFragment extends DialogFragment {
 
     interface OnSeekBarUserUpdateListener {
         void onSeekBarUserUpdate(int position);
+    }
+
+    private Intent createShareSpotifyURLIntent() {
+        Intent shareIntent = new Intent(Intent.ACTION_SEND);
+        shareIntent.setType("text/plain");
+        shareIntent.putExtra(Intent.EXTRA_TEXT, mTrackContent.getSpotifyURL());
+        return shareIntent;
     }
 
 

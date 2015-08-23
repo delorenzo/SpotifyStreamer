@@ -9,7 +9,9 @@ import android.media.MediaPlayer;
 import android.os.AsyncTask;
 import android.os.Handler;
 import android.os.IBinder;
+import android.os.PersistableBundle;
 import android.os.ResultReceiver;
+import android.support.annotation.NonNull;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentTransaction;
 import android.os.Bundle;
@@ -30,11 +32,12 @@ import kaaes.spotify.webapi.android.SpotifyService;
 public class MainActivity extends AppCompatActivity implements
         ArtistFragment.OnArtistSelectedListener, TrackFragment.OnTrackSelectedListener {
     private static SpotifyService mSpotifyService;
-    private Boolean mTwoPane;
+    private Boolean mTwoPane = false;
     private static final String ARTISTFRAGMENT_TAG = "AFTAG";
     private static final String TRACKFRAGMENT_TAG = "TFTAG";
     private static final String TRACKPLAYER_TAG = "TPTAG";
     private static final String LOG_TAG = MainActivity.class.getSimpleName();
+    private static final String ARG_TWOPANE = "twoPane";
 
     private int mTrackListPosition = 0;
     private ArrayList<TrackContent> mTrackList;
@@ -127,6 +130,8 @@ public class MainActivity extends AppCompatActivity implements
 
         //noinspection SimplifiableIfStatement
         if (id == R.id.action_settings) {
+            Intent intent = new Intent(this, SettingsActivity.class);
+            startActivity(intent);
             return true;
         }
 
@@ -154,31 +159,6 @@ public class MainActivity extends AppCompatActivity implements
         intent.putExtra(TrackPlayerActivity.ARG_TRACK_LIST, trackList);
         intent.putExtra(TrackPlayerActivity.ARG_TABLET, mTwoPane);
         startActivity(intent);
-
-//        mTrackList = trackList;
-//        mTrackListPosition = position;
-//        mTrackContent = trackList.get(position);
-//        startMusicPlayerService(MediaPlayerService.ACTION_PLAY);
-//
-//        //Remove any previous instance of the track player fragment prior to initializing this one.
-//        FragmentTransaction ft = getSupportFragmentManager().beginTransaction();
-//        Fragment previousPlayer = getSupportFragmentManager().findFragmentByTag(TRACKPLAYER_TAG);
-//        if (previousPlayer != null) {
-//            ft.remove(previousPlayer);
-//        }
-//
-//        TrackPlayerFragment fragment = TrackPlayerFragment.newInstance(trackList.get(position));
-//
-//        //show the fragment as a dialog in two pane mode and embed it in the container otherwise
-//        if (mTwoPane) {
-//            fragment.show(getSupportFragmentManager(), TRACKPLAYER_TAG);
-//        }
-//        else {
-//            getSupportFragmentManager()
-//                    .beginTransaction()
-//                    .replace(R.id.container, fragment, TRACKPLAYER_TAG)
-//                    .commit();
-//        }
     }
 
     public SpotifyService getSpotifyService()
@@ -186,4 +166,16 @@ public class MainActivity extends AppCompatActivity implements
         return mSpotifyService;
     }
 
+    @Override
+    protected void onRestoreInstanceState(@NonNull Bundle savedInstanceState) {
+        super.onRestoreInstanceState(savedInstanceState);
+        mTwoPane = savedInstanceState.getBoolean(ARG_TWOPANE);
+    }
+
+    @Override
+    public void onSaveInstanceState(Bundle outState, PersistableBundle outPersistentState) {
+        super.onSaveInstanceState(outState, outPersistentState);
+        //two pane is required to handle search intents
+        outPersistentState.putBoolean(ARG_TWOPANE, mTwoPane);
+    }
 }

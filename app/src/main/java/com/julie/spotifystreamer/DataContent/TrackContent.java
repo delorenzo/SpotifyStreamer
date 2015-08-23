@@ -12,18 +12,20 @@ public class TrackContent implements Parcelable {
     private String albumName;
     private String trackName;
     private String spotifyId;
-    private String thumbnailURL;
-    private String previewURL;
+    private String thumbnailURL; //URL for the thumbnail image
+    private String previewURL; //URL for the preview track stream
     private String artistName;
+    private String spotifyURL; //external Spotify URL
 
     public TrackContent (String album, String track, String id, String thumbnail, String preview,
-                         String artist) {
+                         String artist, String spotifyURL) {
         albumName = album;
         trackName = track;
         spotifyId = id;
         thumbnailURL = thumbnail;
         previewURL = preview;
         artistName = artist;
+        this.spotifyURL = spotifyURL;
     }
 
     public String getAlbumName() { return albumName; }
@@ -40,6 +42,8 @@ public class TrackContent implements Parcelable {
 
     public String getArtistName() { return artistName; }
 
+    public String getSpotifyURL() { return spotifyURL; }
+
     protected TrackContent(Parcel in) {
         albumName = in.readString();
         trackName = in.readString();
@@ -47,6 +51,7 @@ public class TrackContent implements Parcelable {
         thumbnailURL = in.readString();
         previewURL = in.readString();
         artistName = in.readString();
+        spotifyURL = in.readString();
     }
 
     @Override
@@ -62,6 +67,7 @@ public class TrackContent implements Parcelable {
         dest.writeString(thumbnailURL);
         dest.writeString(previewURL);
         dest.writeString(artistName);
+        dest.writeString(spotifyURL);
     }
 
     @SuppressWarnings("unused")

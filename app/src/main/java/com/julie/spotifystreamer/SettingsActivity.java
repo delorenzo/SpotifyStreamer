@@ -2,6 +2,7 @@ package com.julie.spotifystreamer;
 
 import android.annotation.TargetApi;
 import android.content.Context;
+import android.content.Intent;
 import android.content.res.Configuration;
 import android.media.Ringtone;
 import android.media.RingtoneManager;
@@ -117,9 +118,8 @@ public class SettingsActivity extends PreferenceActivity {
             // to their values. When their values change, their summaries are
             // updated to reflect the new value, per the Android Design
             // guidelines.
-            bindPreferenceSummaryToValue(findPreference(""));
-            bindPreferenceSummaryToValue(findPreference("example_list"));
+            bindPreferenceSummaryToValue(findPreference(getString(R.string.pref_country_code_key)));
+            bindPreferenceSummaryToValue(findPreference(getString(R.string.pref_show_notification_controls_key)));
         }
     }
-
 }

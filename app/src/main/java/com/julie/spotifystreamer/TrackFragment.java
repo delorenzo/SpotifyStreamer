@@ -125,7 +125,6 @@ public class TrackFragment extends Fragment implements AbsListView.OnItemClickLi
         if (null != mListener) {
             // Notify the active callbacks interface (the activity, if the
             // fragment is attached to one) that an item has been selected.
-            //TrackContent track = mAdapter.getItem(position);
             mListener.onTrackSelected(mTrackList, position);
         }
     }
@@ -148,7 +147,7 @@ public class TrackFragment extends Fragment implements AbsListView.OnItemClickLi
         updateActionBar();
 
         //if the track list is not empty, assume the fragment is restoring from a config change.
-        if (mTrackList.isEmpty()) {
+        if (mTrackList.isEmpty() && mSpotifyId != null) {
             new RetrieveTrackTask(getActivity()).execute();
         }
         else {
@@ -227,7 +226,8 @@ public class TrackFragment extends Fragment implements AbsListView.OnItemClickLi
                         //pull back the largest image so the track player will display properly.
                         thumbnailURL = t.album.images.get(0).url;
                     }
-                    mTrackList.add(new TrackContent(t.album.name, t.name, t.id, thumbnailURL, t.preview_url, mArtist));
+                    mTrackList.add(new TrackContent(t.album.name, t.name, t.id, thumbnailURL,
+                            t.preview_url, mArtist, t.uri));
                 }
                 return mTrackList;
             } catch(RetrofitError e) {
@@ -237,7 +237,9 @@ public class TrackFragment extends Fragment implements AbsListView.OnItemClickLi
                         //you need to cast the TypedInput object as a TypedByteArray to get
                         //the response body as a string:
                         //http://tsuharesu.com/get-retrofit-response-as-string/
-                        errorMessage = new String(((TypedByteArray) e.getResponse().getBody()).getBytes());
+                        errorMessage = new String(((TypedByteArray) e.getResponse()
+                                .getBody())
+                                .getBytes());
                         break;
                     case NETWORK:
                         errorMessage = e.getCause().getMessage();

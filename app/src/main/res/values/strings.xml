@@ -25,8 +25,8 @@
     <!-- strings for settings activity-->
     <!-- strings for the preference on showing notification controls-->
     <string name="pref_show_notification_controls_key" translatable="false">showNotificationControls</string>
-    <string name="pref_show_notification_controls_label">Show notification controls on lock screen</string>
-    <string name="pref_show_notification_controls_default" translatable="false">True</string>
+    <string name="pref_show_notification_controls_label">Show player controls on lock screen</string>
+    <string name="pref_show_notification_controls_default" translatable="false">true</string>
     <string name="pref_show_notification_controls_true">Enabled</string>
     <string name="pref_show_notification_controls_false">Disabled</string>
     <!--strings for the preference on country code -->

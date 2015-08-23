@@ -35,6 +35,7 @@ public class TrackPlayerActivity extends AppCompatActivity
     public static final String TRACKPLAYER_TAG = "playerFragment";
     public static final String ARG_TABLET = "tablet";
     private static final String LOG_TAG = TrackPlayerActivity.class.getSimpleName();
+    private static final String RECEIVER_TAG = "resultReceiver";
 
     private boolean mBound = false;
     private boolean mTablet;
@@ -48,7 +49,7 @@ public class TrackPlayerActivity extends AppCompatActivity
     private Boolean isPlaying = false;
     private int mCurrentPos = 0;
     private int mDuration = 0;
-    private Handler mHandler = new Handler();
+    private ServiceReceiver mServiceReceiver;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -82,9 +83,11 @@ public class TrackPlayerActivity extends AppCompatActivity
                         .replace(R.id.player_container, fragment, TRACKPLAYER_TAG)
                         .commit();
             }
+            mServiceReceiver = new ServiceReceiver(new Handler());
             startMusicPlayerService(MediaPlayerService.ACTION_PLAY);
         }
         else {
+            mServiceReceiver = savedInstanceState.getParcelable(RECEIVER_TAG);
             Intent playIntent = new Intent(this, MediaPlayerService.class);
             bindService(playIntent, mConnection, Context.BIND_AUTO_CREATE);
         }
@@ -98,7 +101,7 @@ public class TrackPlayerActivity extends AppCompatActivity
         playIntent.putExtra(MediaPlayerService.ARG_TRACK_LIST_POSITION, mTrackListPosition);
         //because the media player is being implemented as a service, we need some way
         //for the service to notify the activity of updates to its state.
-        playIntent.putExtra(MediaPlayerService.RESULT_RECEIVER, mResultReceiver);
+        playIntent.putExtra(MediaPlayerService.RESULT_RECEIVER, mServiceReceiver);
         playIntent.setAction(action);
         startService(playIntent);
 
@@ -156,6 +159,7 @@ public class TrackPlayerActivity extends AppCompatActivity
             // bind to the MediaPlayerService and get the instance of MediaPlayerService
             MediaPlayerService.MediaPlayerBinder binder = (MediaPlayerService.MediaPlayerBinder) service;
             mService = binder.getService();
+            mService.setResultReceiver(mServiceReceiver);
             mBound = true;
             isPlaying = true;
             if (mService.isPrepared()) {
@@ -250,7 +254,12 @@ public class TrackPlayerActivity extends AppCompatActivity
     /*
     ResultReceiver that handles messages from the Service about the Service's state.
      */
-    final ResultReceiver mResultReceiver = new ResultReceiver(mHandler) {
+    private class ServiceReceiver extends ResultReceiver {
+        private ResultReceiver mReceiver;
+        public ServiceReceiver (Handler handler) {
+            super(handler);
+        }
+
         @Override
         protected void onReceiveResult(int resultCode, Bundle resultData) {
             TrackPlayerFragment fragment = (TrackPlayerFragment) getSupportFragmentManager().
@@ -286,5 +295,12 @@ public class TrackPlayerActivity extends AppCompatActivity
         if (mService != null && mService.isPrepared()) {
             mService.MediaPlayerSeekTo(position);
         }
+    }
+
+    //the result receiver must be saved on orientation changes
+    @Override
+    protected void onSaveInstanceState(Bundle outState) {
+        outState.putParcelable(RECEIVER_TAG, mServiceReceiver);
+        super.onSaveInstanceState(outState);
     }
 }

@@ -90,6 +90,16 @@ public class TrackPlayerFragment extends DialogFragment {
         mPauseButton = (ImageButton) view.findViewById(R.id.button_pause);
         mResumeButton = (ImageButton) view.findViewById(R.id.button_play);
 
+        //restore UI sensitive saved data
+        if (savedInstanceState != null) {
+            savedInstanceState.setClassLoader(TrackContent.class.getClassLoader());
+            mTrackContent = savedInstanceState.getParcelable(ARG_TRACK);
+            mPosition = savedInstanceState.getInt(ARG_SEEKBAR_POSITION);
+            mDuration = savedInstanceState.getInt(ARG_TRACK_DURATION);
+            resumeVisible = savedInstanceState.getBoolean(ARG_RESUME);
+            setupProgressBar(mDuration, mPosition);
+        }
+
         //the pause button is shown by default
         if (resumeVisible) {
             showResumeButton();
@@ -159,24 +169,13 @@ public class TrackPlayerFragment extends DialogFragment {
     @Override
     public void onSaveInstanceState(Bundle outState) {
         super.onSaveInstanceState(outState);
+        outState.setClassLoader(TrackContent.class.getClassLoader());
         outState.putParcelable(ARG_TRACK, mTrackContent);
         outState.putInt(ARG_SEEKBAR_POSITION, mPosition);
         outState.putInt(ARG_TRACK_DURATION, mDuration);
         outState.putBoolean(ARG_RESUME, resumeVisible);
     }
 
-    @Override
-    public void onActivityCreated(Bundle savedInstanceState) {
-        super.onActivityCreated(savedInstanceState);
-        if (savedInstanceState != null) {
-            savedInstanceState.setClassLoader(TrackContent.class.getClassLoader());
-            mTrackContent = savedInstanceState.getParcelable(ARG_TRACK);
-            mPosition = savedInstanceState.getInt(ARG_SEEKBAR_POSITION);
-            mDuration = savedInstanceState.getInt(ARG_TRACK_DURATION);
-            resumeVisible = savedInstanceState.getBoolean(ARG_RESUME);
-            setupProgressBar(mDuration, mPosition);
-        }
-    }
 
     @Override
     public void onStop() {

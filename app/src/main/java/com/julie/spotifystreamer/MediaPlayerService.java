@@ -11,6 +11,7 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.graphics.Bitmap;
 import android.media.AudioManager;
+import android.media.MediaMetadata;
 import android.media.MediaPlayer;
 import android.net.Uri;
 import android.net.wifi.WifiManager;
@@ -21,6 +22,7 @@ import android.os.IBinder;
 import android.os.PowerManager;
 import android.os.ResultReceiver;
 import android.preference.PreferenceManager;
+import android.support.v4.media.MediaMetadataCompat;
 import android.support.v4.media.session.MediaControllerCompat;
 import android.support.v4.media.session.MediaSessionCompat;
 import android.support.v4.media.session.PlaybackStateCompat;
@@ -266,6 +268,11 @@ public class MediaPlayerService extends Service implements MediaPlayer.OnPrepare
                         MAX_VOLUME)
                 .build();
         mSession.setPlaybackState(mPlaybackState);
+        mSession.setMetadata(new MediaMetadataCompat.Builder()
+                .putString(MediaMetadata.METADATA_KEY_ARTIST, mCurrentTrack.getArtistName())
+                .putString(MediaMetadata.METADATA_KEY_ALBUM, mCurrentTrack.getAlbumName())
+                .putString(MediaMetadata.METADATA_KEY_TITLE, mCurrentTrack.getTrackName())
+                .build());
         mSession.setCallback(mMediaSessionCallback);
         mSession.setActive(true);
 
@@ -289,7 +296,9 @@ public class MediaPlayerService extends Service implements MediaPlayer.OnPrepare
                         .addAction(R.drawable.ic_skip_next_black_24dp, getString(R.string.msg_next),
                                 generatePendingIntent(MediaPlayerService.ACTION_NEXT))
                         //set media style
-                        .setStyle(new NotificationCompat.MediaStyle().setMediaSession(mSession.getSessionToken()))
+                        .setStyle(new NotificationCompat.MediaStyle()
+                                .setShowActionsInCompactView(0, 1, 2)
+                                .setMediaSession(mSession.getSessionToken()))
                         .setContentTitle(getString(R.string.now_playing))
                         .setSmallIcon(R.drawable.ic_queue_music_black_24dp)
                         .setContentText(mCurrentTrack.getTrackName());
@@ -304,14 +313,14 @@ public class MediaPlayerService extends Service implements MediaPlayer.OnPrepare
     }
 
     private PendingIntent generatePendingIntent(String action) {
-        Intent intent = new Intent(this, MediaPlayerService.class);
+        Intent intent = new Intent();
         intent.setAction(action);
-        return PendingIntent.getActivity(
-                        getApplicationContext(),
-                        0,
-                        intent,
-                        PendingIntent.FLAG_UPDATE_CURRENT
-                );
+        return PendingIntent.getBroadcast(
+                getApplicationContext(),
+                1,
+                intent,
+                PendingIntent.FLAG_UPDATE_CURRENT
+        );
     }
 
 
@@ -390,6 +399,8 @@ public class MediaPlayerService extends Service implements MediaPlayer.OnPrepare
         mMediaPlayer.pause();
         userPaused = true;
         releaseWifiLock();
+        //unfortunately to update the lock screen button, you have to reinitialize the notification
+        initNotification();
     }
 
     //resume - recover from from transient audio focus loss
@@ -403,6 +414,8 @@ public class MediaPlayerService extends Service implements MediaPlayer.OnPrepare
             mMediaPlayer.start();
         }
         userPaused = false;
+        //unfortunately to update the lock screen button, you have to reinitialize the notification
+        initNotification();
     }
 
     //stop - indetermined length of audio focus loss.  release resources
@@ -623,4 +636,8 @@ public class MediaPlayerService extends Service implements MediaPlayer.OnPrepare
             stop();
         }
     };
+
+    public void setResultReceiver(ResultReceiver receiver) {
+        resultReceiver = receiver;
+    }
 }

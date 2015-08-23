@@ -15,20 +15,26 @@ public class MediaNotificationReceiver extends BroadcastReceiver {
     @Override
     public void onReceive(Context context, Intent intent) {
         String action = intent.getAction();
+        Intent serviceIntent = new Intent(context, MediaPlayerService.class);
         if (MediaPlayerService.ACTION_PLAY.equals(action)) {
-            context.startService(new Intent(MediaPlayerService.ACTION_PLAY));
+            serviceIntent.setAction(MediaPlayerService.ACTION_PLAY);
+            context.startService(serviceIntent);
         }
         else if (MediaPlayerService.ACTION_PAUSE.equals(action)) {
-            context.startService(new Intent(MediaPlayerService.ACTION_PAUSE));
+            serviceIntent.setAction(MediaPlayerService.ACTION_PAUSE);
+            context.startService(serviceIntent);
         }
         else if (MediaPlayerService.ACTION_PLAY_PAUSE.equals(action)) {
-            context.startService((new Intent(MediaPlayerService.ACTION_PLAY_PAUSE)));
+            serviceIntent.setAction(MediaPlayerService.ACTION_PLAY_PAUSE);
+            context.startService(serviceIntent);
         }
         else if (MediaPlayerService.ACTION_NEXT.equals(action)) {
-            context.startService(new Intent(MediaPlayerService.ACTION_NEXT));
+            serviceIntent.setAction(MediaPlayerService.ACTION_NEXT);
+            context.startService(serviceIntent);
         }
         else if (MediaPlayerService.ACTION_PREVIOUS.equals(action)) {
-            context.startService(new Intent(MediaPlayerService.ACTION_PREVIOUS));
+            serviceIntent.setAction(MediaPlayerService.ACTION_PREVIOUS);
+            context.startService(serviceIntent);
         }
         else {
            Log.e(LOG_TAG, "Unrecognized intent action :  " + action.toString());

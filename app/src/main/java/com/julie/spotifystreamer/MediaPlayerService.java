@@ -91,6 +91,7 @@ public class MediaPlayerService extends Service implements MediaPlayer.OnPrepare
     private ArrayList<TrackContent> mTrackList;
     private TrackContent mCurrentTrack;
     private int mTrackListPosition;
+    private Boolean userPaused = false;
 
     //handle audio focus changes by pausing/resuming/adjusting audio as is appropriate
     @Override
@@ -100,7 +101,11 @@ public class MediaPlayerService extends Service implements MediaPlayer.OnPrepare
                 if (mMediaPlayer == null) {
                     initMediaPlayer();
                 }
-                resume();
+                //sometimes the device gains audio focus after the user had paused the music
+                //playback.. and the music resumes on its own
+                if (!userPaused) {
+                    resume();
+                }
                 mMediaPlayer.setVolume(MAX_VOLUME, MAX_VOLUME);
                 break;
             case AudioManager.AUDIOFOCUS_LOSS:
@@ -108,6 +113,7 @@ public class MediaPlayerService extends Service implements MediaPlayer.OnPrepare
                 break;
             case AudioManager.AUDIOFOCUS_LOSS_TRANSIENT:
                 pause();
+                userPaused = false;
                 break;
             case AudioManager.AUDIOFOCUS_LOSS_TRANSIENT_CAN_DUCK:
                 if (mMediaPlayer.isPlaying()) {
@@ -120,7 +126,7 @@ public class MediaPlayerService extends Service implements MediaPlayer.OnPrepare
     // The service is starting, due to a call to startService()
     public int onStartCommand(Intent intent, int flags, int startId) {
         if (intent == null) {
-            return START_NOT_STICKY;
+            return START_STICKY;
         }
         switch (intent.getAction()) {
             case ACTION_PLAY:
@@ -182,7 +188,7 @@ public class MediaPlayerService extends Service implements MediaPlayer.OnPrepare
                 Log.e(LOG_TAG, "Unrecognized intent action called for:  " + intent.getAction());
                 break;
         }
-        return START_REDELIVER_INTENT;
+        return START_STICKY;
     }
 
     public void skipToNext() {
@@ -265,8 +271,7 @@ public class MediaPlayerService extends Service implements MediaPlayer.OnPrepare
 
         //set visibility from shared preferences
         SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
-        Boolean showOnLockScreen = Boolean.parseBoolean(prefs.getString(getApplicationContext().getString(R.string.pref_country_code_key),
-                getApplicationContext().getString(R.string.pref_country_code_default)));
+        Boolean showOnLockScreen = prefs.getBoolean(getApplicationContext().getString(R.string.pref_show_notification_controls_key), true);
         int visbility = showOnLockScreen ? NotificationCompat.VISIBILITY_PUBLIC : NotificationCompat.VISIBILITY_PRIVATE;
 
         mNotificationBuilder =
@@ -383,6 +388,7 @@ public class MediaPlayerService extends Service implements MediaPlayer.OnPrepare
     public void pause()
     {
         mMediaPlayer.pause();
+        userPaused = true;
         releaseWifiLock();
     }
 
@@ -396,6 +402,7 @@ public class MediaPlayerService extends Service implements MediaPlayer.OnPrepare
         if (!mMediaPlayer.isPlaying()) {
             mMediaPlayer.start();
         }
+        userPaused = false;
     }
 
     //stop - indetermined length of audio focus loss.  release resources

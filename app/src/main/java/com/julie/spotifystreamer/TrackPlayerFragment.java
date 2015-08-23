@@ -70,6 +70,7 @@ public class TrackPlayerFragment extends DialogFragment {
     public void onCreate(Bundle savedInstanceState) {
         //obtain arguments
         super.onCreate(savedInstanceState);
+        setHasOptionsMenu(true);
         if (getArguments() != null) {
             mTrackContent = getArguments().getParcelable(ARG_TRACK);
         }
@@ -101,6 +102,7 @@ public class TrackPlayerFragment extends DialogFragment {
 
     @Override
     public void onCreateOptionsMenu(Menu menu, MenuInflater inflater) {
+        menu.clear();
         inflater.inflate(R.menu.menu_track_player, menu);
 
         MenuItem menuItem = menu.findItem(R.id.action_share);
@@ -233,7 +235,7 @@ public class TrackPlayerFragment extends DialogFragment {
     private Intent createShareSpotifyURLIntent() {
         Intent shareIntent = new Intent(Intent.ACTION_SEND);
         shareIntent.setType("text/plain");
-        shareIntent.putExtra(Intent.EXTRA_TEXT, mTrackContent.getSpotifyURL());
+        shareIntent.putExtra(Intent.EXTRA_TEXT, mTrackContent.getPreviewURL());
         return shareIntent;
     }
 

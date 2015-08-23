@@ -30,12 +30,21 @@
         </activity>
         <activity
             android:name=".TrackPlayerActivity"
-            android:label="@string/title_activity_track_player" >
+            android:label="@string/title_activity_track_player"
+            android:parentActivityName=".MainActivity">
+            <meta-data
+                android:name="android.support.parent_ACTIVITY"
+                android:value="com.julie.spotifystreamer.MainActivity">
+            </meta-data>
         </activity>
         <activity
             android:name=".SettingsActivity"
             android:label="@string/title_activity_settings"
             android:parentActivityName=".MainActivity">
+            <meta-data
+                android:name="android.support.parent_ACTIVITY"
+                android:value="com.julie.spotifystreamer.MainActivity">
+            </meta-data>
         </activity>
 
         <service
@@ -50,6 +59,15 @@
         <receiver android:name=".Receivers.MusicIntentReceiver" >
             <intent-filter>
                 <action android:name="android.media.AUDIO_BECOMING_NOISY" />
+            </intent-filter>
+        </receiver>
+        <receiver android:name=".Receivers.MediaNotificationReceiver" >
+            <intent-filter>
+                <action android:name="com.julie.spotifystreamer.action.PLAY" />
+                <action android:name="com.julie.spotifystreamer.action.PAUSE" />
+                <action android:name="com.julie.spotifystreamer.action.PLAY_PAUSE" />
+                <action android:name="com.julie.spotifystreamer.action.NEXT" />
+                <action android:name="com.julie.spotifystreamer.action.PREVIOUS" />
             </intent-filter>
         </receiver>
     </application>

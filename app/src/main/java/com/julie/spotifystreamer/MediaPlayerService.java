@@ -97,8 +97,7 @@ public class MediaPlayerService extends Service implements MediaPlayer.OnPrepare
                 if (mMediaPlayer == null) {
                     initMediaPlayer();
                 }
-                //sometimes the device gains audio focus after the user had paused the music
-                //playback.. and the music resumes on its own
+                //only resume playback if it was a pause related to the loss of audio focus
                 if (!userPaused) {
                     resume();
                 }
@@ -109,7 +108,6 @@ public class MediaPlayerService extends Service implements MediaPlayer.OnPrepare
                 break;
             case AudioManager.AUDIOFOCUS_LOSS_TRANSIENT:
                 pause();
-                userPaused = false;
                 break;
             case AudioManager.AUDIOFOCUS_LOSS_TRANSIENT_CAN_DUCK:
                 if (mMediaPlayer.isPlaying()) {
@@ -126,6 +124,7 @@ public class MediaPlayerService extends Service implements MediaPlayer.OnPrepare
         }
         switch (intent.getAction()) {
             case ACTION_PLAY:
+                userPaused = false;
                 //if the activity is recovering from being stopped,
                 //send out the prepared broadcast so it can update its UI.
                 if (mMediaPlayer != null) {
@@ -161,18 +160,22 @@ public class MediaPlayerService extends Service implements MediaPlayer.OnPrepare
                 break;
 
             case ACTION_PAUSE:
+                userPaused = true;
                 pause();
                 break;
 
             case ACTION_RESUME:
+                userPaused = false;
                 resume();
                 break;
 
             case ACTION_PLAY_PAUSE:
                 if (mMediaPlayer != null) {
                     if (mMediaPlayer.isPlaying()) {
+                        userPaused = true;
                         pause();
                     } else {
+                        userPaused = false;
                         resume();
                     }
                 }
@@ -444,7 +447,6 @@ public class MediaPlayerService extends Service implements MediaPlayer.OnPrepare
     public void pause()
     {
         mMediaPlayer.pause();
-        userPaused = true;
         releaseWifiLock();
         //unfortunately to update the lock screen button, you have to reinitialize the notification
         updateNotification();
@@ -460,7 +462,6 @@ public class MediaPlayerService extends Service implements MediaPlayer.OnPrepare
         if (!mMediaPlayer.isPlaying()) {
             mMediaPlayer.start();
         }
-        userPaused = false;
         //unfortunately to update the lock screen button, you have to reinitialize the notification
         updateNotification();
     }

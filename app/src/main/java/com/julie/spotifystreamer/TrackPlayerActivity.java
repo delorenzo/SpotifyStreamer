@@ -182,26 +182,22 @@ public class TrackPlayerActivity extends AppCompatActivity
 
 
     public void pausePlayer(View view) {
-        if (mService != null) {
-            mService.pause();
-        }
         TrackPlayerFragment fragment = (TrackPlayerFragment)getSupportFragmentManager().
                 findFragmentByTag(TRACKPLAYER_TAG);
         if (fragment != null) {
             fragment.showResumeButton();
         }
+        startMusicPlayerService(MediaPlayerService.ACTION_PAUSE);
     }
 
     public void resumePlayer(View view) {
-        if (mService != null) {
-            mService.resume();
-        }
         TrackPlayerFragment fragment = (TrackPlayerFragment)getSupportFragmentManager().
                 findFragmentByTag(TRACKPLAYER_TAG);
         new UpdateProgressTask().execute();
         if (fragment != null) {
             fragment.showPauseButton();
         }
+        startMusicPlayerService(MediaPlayerService.ACTION_RESUME);
     }
 
     public void skipNextPlayer(View view) {

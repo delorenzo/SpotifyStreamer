@@ -95,6 +95,7 @@ public class TrackPlayerActivity extends AppCompatActivity
         else {
             Intent playIntent = new Intent(this, MediaPlayerService.class);
             bindService(playIntent, mConnection, Context.BIND_AUTO_CREATE);
+            startMusicPlayerService(MediaPlayerService.ACTION_PLAY);
         }
     }
 
@@ -120,15 +121,15 @@ public class TrackPlayerActivity extends AppCompatActivity
     @Override
     protected void onStop() {
         super.onStop();
-        if (mBound) {
-            unbindService(mConnection);
-            mBound = false;
-        }
     }
 
     @Override
     protected void onDestroy() {
         super.onDestroy();
+        if (mBound) {
+            unbindService(mConnection);
+            mBound = false;
+        }
     }
 
     @Override

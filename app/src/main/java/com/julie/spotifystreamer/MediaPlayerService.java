@@ -126,20 +126,30 @@ public class MediaPlayerService extends Service implements MediaPlayer.OnPrepare
         }
         switch (intent.getAction()) {
             case ACTION_PLAY:
-                mTrackList = intent.getParcelableArrayListExtra(ARG_TRACK_LIST);
-                mTrackListPosition = intent.getIntExtra(ARG_TRACK_LIST_POSITION, 0);
-                mCurrentTrack = mTrackList.get(mTrackListPosition);
-                mAudioManager = (AudioManager) getSystemService(Context.AUDIO_SERVICE);
-                int result = mAudioManager.requestAudioFocus(this, AudioManager.STREAM_MUSIC,
-                        AudioManager.AUDIOFOCUS_GAIN);
-                if (result != AudioManager.AUDIOFOCUS_REQUEST_GRANTED) {
-                    Log.e(LOG_TAG, "Audio focus request was denied.  Media player will not be started.");
-                    return -1;
+                //if the activity is recovering from being stopped,
+                //send out the prepared broadcast so it can update its UI.
+                if (mMediaPlayer != null) {
+                   resume();
+                    Intent broadcastIntent = new Intent(ACTION_PREPARED);
+                    broadcastIntent.putExtra(TrackPlayerActivity.ARG_TRACK, mCurrentTrack);
+                    LocalBroadcastManager.getInstance(this).sendBroadcast(broadcastIntent);
                 }
-
-                initMediaPlayer();
-                initNotification();
-                new LoadThumbnailTask().execute();
+                //otherwise start the player normally
+                else {
+                    mTrackList = intent.getParcelableArrayListExtra(ARG_TRACK_LIST);
+                    mTrackListPosition = intent.getIntExtra(ARG_TRACK_LIST_POSITION, 0);
+                    mCurrentTrack = mTrackList.get(mTrackListPosition);
+                    mAudioManager = (AudioManager) getSystemService(Context.AUDIO_SERVICE);
+                    int result = mAudioManager.requestAudioFocus(this, AudioManager.STREAM_MUSIC,
+                            AudioManager.AUDIOFOCUS_GAIN);
+                    if (result != AudioManager.AUDIOFOCUS_REQUEST_GRANTED) {
+                        Log.e(LOG_TAG, "Audio focus request was denied.  Media player will not be started.");
+                        return -1;
+                    }
+                    initMediaPlayer();
+                    initNotification();
+                    new LoadThumbnailTask().execute();
+                }
                 break;
 
             case ACTION_NEXT:
@@ -390,9 +400,8 @@ public class MediaPlayerService extends Service implements MediaPlayer.OnPrepare
     private void initMediaPlayer() {
         if (mMediaPlayer == null) {
             mMediaPlayer = new MediaPlayer();
+            setListeners();
         }
-
-        setListeners();
         mMediaPlayer.setAudioStreamType(AudioManager.STREAM_MUSIC);
         
         //acquire CPU lock to ensure playback is not interrupted

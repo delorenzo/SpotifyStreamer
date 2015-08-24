@@ -1,4 +1,4 @@
-package com.julie.spotifystreamer.Receivers;
+package com.julie.spotifystreamer.receivers;
 
 import android.content.BroadcastReceiver;
 import android.content.Context;
@@ -37,7 +37,7 @@ public class MediaNotificationReceiver extends BroadcastReceiver {
             context.startService(serviceIntent);
         }
         else {
-           Log.e(LOG_TAG, "Unrecognized intent action :  " + action.toString());
+           Log.e(LOG_TAG, "Unrecognized intent action :  " + action);
         }
     }
 }

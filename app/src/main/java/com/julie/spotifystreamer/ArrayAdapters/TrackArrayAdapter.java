@@ -1,4 +1,4 @@
-package com.julie.spotifystreamer.ArrayAdapters;
+package com.julie.spotifystreamer.arrayadapters;
 
 import android.content.Context;
 import android.view.LayoutInflater;
@@ -9,7 +9,7 @@ import android.widget.ImageView;
 import android.widget.TextView;
 
 import com.julie.spotifystreamer.R;
-import com.julie.spotifystreamer.DataContent.TrackContent;
+import com.julie.spotifystreamer.datacontent.TrackContent;
 import com.squareup.picasso.Picasso;
 
 import java.util.ArrayList;

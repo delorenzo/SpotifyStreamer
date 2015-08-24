@@ -1,4 +1,4 @@
-package com.julie.spotifystreamer.Receivers;
+package com.julie.spotifystreamer.receivers;
 
 import android.content.Context;
 import android.content.Intent;

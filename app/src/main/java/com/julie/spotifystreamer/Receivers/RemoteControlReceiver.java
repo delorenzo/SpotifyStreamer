@@ -1,11 +1,8 @@
-package com.julie.spotifystreamer.Receivers;
+package com.julie.spotifystreamer.receivers;
 
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
-import android.media.MediaPlayer;
-import android.os.IBinder;
-import android.provider.MediaStore;
 import android.util.Log;
 import android.view.KeyEvent;
 

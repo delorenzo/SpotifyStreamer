@@ -18,8 +18,8 @@ import android.widget.AdapterView;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import com.julie.spotifystreamer.ArrayAdapters.TrackArrayAdapter;
-import com.julie.spotifystreamer.DataContent.TrackContent;
+import com.julie.spotifystreamer.arrayadapters.TrackArrayAdapter;
+import com.julie.spotifystreamer.datacontent.TrackContent;
 
 import java.util.ArrayList;
 import java.util.Hashtable;
@@ -263,7 +263,8 @@ public class TrackFragment extends Fragment implements AbsListView.OnItemClickLi
                 if (mToast != null) {
                     mToast.cancel();
                 }
-                mToast = Toast.makeText(mContext, errorMessage, Toast.LENGTH_SHORT);
+                Log.e(LOG_TAG, errorMessage);
+                mToast = Toast.makeText(mContext, "There was an error retrieving your results.", Toast.LENGTH_SHORT);
                 mToast.show();
             }
             else {

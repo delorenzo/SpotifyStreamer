@@ -16,8 +16,8 @@ import android.widget.AdapterView;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import com.julie.spotifystreamer.ArrayAdapters.ArtistArrayAdapter;
-import com.julie.spotifystreamer.DataContent.ArtistContent;
+import com.julie.spotifystreamer.arrayadapters.ArtistArrayAdapter;
+import com.julie.spotifystreamer.datacontent.ArtistContent;
 
 import java.util.ArrayList;
 import java.util.List;

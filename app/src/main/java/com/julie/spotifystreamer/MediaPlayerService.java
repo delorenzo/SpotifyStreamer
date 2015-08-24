@@ -1,6 +1,5 @@
 package com.julie.spotifystreamer;
 
-import android.app.IntentService;
 import android.app.Notification;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
@@ -17,11 +16,10 @@ import android.net.Uri;
 import android.net.wifi.WifiManager;
 import android.os.AsyncTask;
 import android.os.Binder;
-import android.os.Bundle;
 import android.os.IBinder;
 import android.os.PowerManager;
-import android.os.ResultReceiver;
 import android.preference.PreferenceManager;
+import android.support.v4.content.LocalBroadcastManager;
 import android.support.v4.media.MediaMetadataCompat;
 import android.support.v4.media.session.MediaControllerCompat;
 import android.support.v4.media.session.MediaSessionCompat;
@@ -30,8 +28,8 @@ import android.support.v7.app.NotificationCompat;
 import android.util.Log;
 import android.view.KeyEvent;
 
-import com.julie.spotifystreamer.DataContent.TrackContent;
-import com.julie.spotifystreamer.Receivers.RemoteControlReceiver;
+import com.julie.spotifystreamer.datacontent.TrackContent;
+import com.julie.spotifystreamer.receivers.RemoteControlReceiver;
 import com.squareup.picasso.Picasso;
 
 import java.io.IOException;
@@ -48,7 +46,7 @@ import java.util.ArrayList;
  */
 public class MediaPlayerService extends Service implements MediaPlayer.OnPreparedListener,
         MediaPlayer.OnErrorListener, MediaPlayer.OnCompletionListener,
-        AudioManager.OnAudioFocusChangeListener{
+        AudioManager.OnAudioFocusChangeListener {
 
     //actions
     public static final String ACTION_PLAY = "com.julie.spotifystreamer.action.PLAY";
@@ -59,17 +57,13 @@ public class MediaPlayerService extends Service implements MediaPlayer.OnPrepare
     public static final String ACTION_PAUSE = "com.julie.spotifystreamer.action.PAUSE";
     public static final String ACTION_RESUME = "com.julie.spotifystreamer.action.RESUME";
     public static final String ACTION_PLAY_PAUSE = "com.julie.spotifystreamer.action.PLAY_PAUSE";
+    public static final String ACTION_UPDATE_NOTIFICATION = "com.julie.spotifystreamer.action.UPDATE_NOTIFICATION";
+    public static final String ACTION_PREPARED = "com.julie.spotifystreamer.action.PREPARED";
+    public static final String ACTION_COMPLETE = "com.julie.spotifystreamer.action.COPMLETE";
+    public static final String ACTION_TRACK_CHANGE = "com.julie.spotifystreamer.action.TRACK_CHANGE";
     //arguments
-    public static final String ARG_TRACK_NAME = "songName";
-    public static final String ARG_URI = "uri";
-    public static final String ARG_ALBUM_ART = "albumArt";
     public static final String ARG_TRACK_LIST = "trackList";
     public static final String ARG_TRACK_LIST_POSITION = "trackListPosition";
-    //receiver constants
-    public static final String RESULT_RECEIVER = "resultReceiver";
-    public static final int PREPARED = 22;
-    public static final int COMPLETE = 33;
-    public static final int TRACK_CHANGE = 44;
 
     //private constants
     private static final String LOG_TAG = MediaPlayerService.class.getSimpleName();
@@ -87,13 +81,13 @@ public class MediaPlayerService extends Service implements MediaPlayer.OnPrepare
     private final IBinder mBinder = new MediaPlayerBinder();
     private AudioManager mAudioManager;
     private NotificationCompat.Builder mNotificationBuilder;
-    private ResultReceiver resultReceiver;
     private Boolean isPrepared = false;
     private int duration = 0;
     private ArrayList<TrackContent> mTrackList;
     private TrackContent mCurrentTrack;
     private int mTrackListPosition;
     private Boolean userPaused = false;
+    private Bitmap albumArt;
 
     //handle audio focus changes by pausing/resuming/adjusting audio as is appropriate
     @Override
@@ -145,8 +139,7 @@ public class MediaPlayerService extends Service implements MediaPlayer.OnPrepare
 
                 initMediaPlayer();
                 initNotification();
-
-                resultReceiver = intent.getParcelableExtra(RESULT_RECEIVER);
+                new LoadThumbnailTask().execute();
                 break;
 
             case ACTION_NEXT:
@@ -186,6 +179,10 @@ public class MediaPlayerService extends Service implements MediaPlayer.OnPrepare
                 changeTrack();
                 break;
 
+            case ACTION_UPDATE_NOTIFICATION:
+                updateNotification();
+                break;
+
             default:
                 Log.e(LOG_TAG, "Unrecognized intent action called for:  " + intent.getAction());
                 break;
@@ -215,7 +212,9 @@ public class MediaPlayerService extends Service implements MediaPlayer.OnPrepare
     public void changeTrack()
     {
         //tell the activity to update its fragment with the new track
-        resultReceiver.send(TRACK_CHANGE, new Bundle());
+        Intent intent = new Intent(ACTION_TRACK_CHANGE);
+        intent.putExtra(TrackPlayerActivity.ARG_TRACK, mCurrentTrack);
+        LocalBroadcastManager.getInstance(this).sendBroadcast(intent);
         //to change the data source on a media player you must call reset
         //because setDataSource() called in any other state throws an IllegalStateException
         if (mMediaPlayer != null) {
@@ -223,6 +222,7 @@ public class MediaPlayerService extends Service implements MediaPlayer.OnPrepare
         }
         initMediaPlayer();
         initNotification();
+        new LoadThumbnailTask().execute();
     }
 
     //make the service a foreground service by creating a notification for the status bar.
@@ -230,17 +230,6 @@ public class MediaPlayerService extends Service implements MediaPlayer.OnPrepare
         PendingIntent pendingIntent = PendingIntent.getActivity(getApplicationContext(), 0,
                 new Intent(getApplicationContext(), TrackPlayerActivity.class),
                 PendingIntent.FLAG_UPDATE_CURRENT);
-
-        String playPauseString;
-        int playPauseIcon;
-        if (mMediaPlayer != null && mMediaPlayer.isPlaying()) {
-            playPauseIcon = R.drawable.ic_pause_black_24dp;
-            playPauseString = getString(R.string.msg_pause);
-        }
-        else {
-            playPauseIcon = R.drawable.ic_play_arrow_black_24dp;
-            playPauseString = getString(R.string.msg_resume);
-        }
 
         //show lockscreen controls on pre-21 devices using MediaSessionCompat
         //see:
@@ -279,19 +268,20 @@ public class MediaPlayerService extends Service implements MediaPlayer.OnPrepare
         //set visibility from shared preferences
         SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
         Boolean showOnLockScreen = prefs.getBoolean(getApplicationContext().getString(R.string.pref_show_notification_controls_key), true);
-        int visbility = showOnLockScreen ? NotificationCompat.VISIBILITY_PUBLIC : NotificationCompat.VISIBILITY_PRIVATE;
+        int visibility = showOnLockScreen ? NotificationCompat.VISIBILITY_PUBLIC : NotificationCompat.VISIBILITY_PRIVATE;
 
         mNotificationBuilder =
                 //for some reason this seems to need casting or the v4 notificationcompat is returned
                 //v7 notificationcompat is required to use MediaStyle
                 (android.support.v7.app.NotificationCompat.Builder)new NotificationCompat.Builder(getApplicationContext())
                         //set preferred visbility
-                        .setVisibility(visbility)
+                        .setVisibility(visibility)
                         //add media control buttons
                         .addAction(R.drawable.ic_skip_previous_black_24dp,
                                 getString(R.string.msg_previous),
                                 generatePendingIntent(MediaPlayerService.ACTION_PREVIOUS))
-                        .addAction(playPauseIcon, playPauseString,
+                        .addAction(R.drawable.ic_pause_black_24dp,
+                                getString(R.string.msg_pause),
                                 generatePendingIntent(MediaPlayerService.ACTION_PLAY_PAUSE))
                         .addAction(R.drawable.ic_skip_next_black_24dp, getString(R.string.msg_next),
                                 generatePendingIntent(MediaPlayerService.ACTION_NEXT))
@@ -301,9 +291,9 @@ public class MediaPlayerService extends Service implements MediaPlayer.OnPrepare
                                 .setMediaSession(mSession.getSessionToken()))
                         .setContentTitle(getString(R.string.now_playing))
                         .setSmallIcon(R.drawable.ic_queue_music_black_24dp)
+                        .setLargeIcon(albumArt)
                         .setContentText(mCurrentTrack.getTrackName());
         Notification notification = mNotificationBuilder.build();
-        new LoadThumbnailTask().execute();
 
         mTransportController = mSession.getController().getTransportControls();
         NotificationManager mNotificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
@@ -323,7 +313,53 @@ public class MediaPlayerService extends Service implements MediaPlayer.OnPrepare
         );
     }
 
+    private void updateNotification() {
+        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
+        Boolean showOnLockScreen = prefs.getBoolean(getApplicationContext()
+                .getString(R.string.pref_show_notification_controls_key), true);
+        int visibility = showOnLockScreen ? NotificationCompat.VISIBILITY_PUBLIC : NotificationCompat.VISIBILITY_PRIVATE;
 
+        String playPauseString;
+        int playPauseIcon;
+        if (mMediaPlayer != null && mMediaPlayer.isPlaying()) {
+            playPauseIcon = R.drawable.ic_pause_black_24dp;
+            playPauseString = getString(R.string.msg_pause);
+        }
+        else {
+            playPauseIcon = R.drawable.ic_play_arrow_black_24dp;
+            playPauseString = getString(R.string.msg_resume);
+        }
+
+        mNotificationBuilder =
+                //for some reason this seems to need casting or the v4 notificationcompat is returned
+                //v7 notificationcompat is required to use MediaStyle
+                (android.support.v7.app.NotificationCompat.Builder)new NotificationCompat.Builder(getApplicationContext())
+                        //set preferred visbility
+                        .setVisibility(visibility)
+                        //add media control buttons
+                        .addAction(R.drawable.ic_skip_previous_black_24dp,
+                                getString(R.string.msg_previous),
+                                generatePendingIntent(MediaPlayerService.ACTION_PREVIOUS))
+                        .addAction(playPauseIcon, playPauseString,
+                                generatePendingIntent(MediaPlayerService.ACTION_PLAY_PAUSE))
+                        .addAction(R.drawable.ic_skip_next_black_24dp, getString(R.string.msg_next),
+                                generatePendingIntent(MediaPlayerService.ACTION_NEXT))
+                        //set media style
+                        .setStyle(new NotificationCompat.MediaStyle()
+                                .setShowActionsInCompactView(0, 1, 2)
+                                .setMediaSession(mSession.getSessionToken()))
+                        .setContentTitle(getString(R.string.now_playing))
+                        .setSmallIcon(R.drawable.ic_queue_music_black_24dp)
+                        .setLargeIcon(albumArt)
+                        .setContentText(mCurrentTrack.getTrackName());
+        Notification notification = mNotificationBuilder.build();
+
+        mTransportController = mSession.getController().getTransportControls();
+        NotificationManager mNotificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+        mNotificationManager.notify(mNotificationId, notification);
+
+        startForeground(mNotificationId, notification);
+    }
     //update the notification with the appropriate track name
     private void updateNotificationText() {
         NotificationManager mNotificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
@@ -341,7 +377,9 @@ public class MediaPlayerService extends Service implements MediaPlayer.OnPrepare
     //the media player has completed playback.  release resources
     @Override
     public void onCompletion(MediaPlayer mp) {
-        resultReceiver.send(COMPLETE, new Bundle());
+        Intent intent = new Intent(ACTION_COMPLETE);
+        LocalBroadcastManager.getInstance(this).sendBroadcast(intent);
+
         mMediaPlayer.reset();
         mMediaPlayer.release();
         mMediaPlayer = null;
@@ -400,7 +438,7 @@ public class MediaPlayerService extends Service implements MediaPlayer.OnPrepare
         userPaused = true;
         releaseWifiLock();
         //unfortunately to update the lock screen button, you have to reinitialize the notification
-        initNotification();
+        updateNotification();
     }
 
     //resume - recover from from transient audio focus loss
@@ -415,7 +453,7 @@ public class MediaPlayerService extends Service implements MediaPlayer.OnPrepare
         }
         userPaused = false;
         //unfortunately to update the lock screen button, you have to reinitialize the notification
-        initNotification();
+        updateNotification();
     }
 
     //stop - indetermined length of audio focus loss.  release resources
@@ -467,7 +505,9 @@ public class MediaPlayerService extends Service implements MediaPlayer.OnPrepare
         mp.start();
         duration = mp.getDuration();
         isPrepared = true;
-        resultReceiver.send(PREPARED, new Bundle());
+        Intent intent = new Intent(ACTION_PREPARED);
+        intent.putExtra(TrackPlayerActivity.ARG_TRACK, mCurrentTrack);
+        LocalBroadcastManager.getInstance(this).sendBroadcast(intent);
     }
 
     //the service is being destroyed.  release resources
@@ -538,6 +578,7 @@ public class MediaPlayerService extends Service implements MediaPlayer.OnPrepare
         return isPrepared;
     }
 
+
     public void setList(ArrayList<TrackContent> list, int position) {
         mTrackList = list;
         mTrackListPosition = position;
@@ -563,6 +604,7 @@ public class MediaPlayerService extends Service implements MediaPlayer.OnPrepare
         @Override
         protected void onPostExecute(Bitmap result) {
             if (result != null) {
+                albumArt = result;
                 updateNotificationThumbnail(result);
             }
         }
@@ -636,8 +678,4 @@ public class MediaPlayerService extends Service implements MediaPlayer.OnPrepare
             stop();
         }
     };
-
-    public void setResultReceiver(ResultReceiver receiver) {
-        resultReceiver = receiver;
-    }
 }

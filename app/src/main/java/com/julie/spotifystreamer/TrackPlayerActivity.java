@@ -1,23 +1,24 @@
 package com.julie.spotifystreamer;
 
+import android.content.BroadcastReceiver;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.ServiceConnection;
 import android.os.AsyncTask;
 import android.os.Bundle;
-import android.os.Handler;
 import android.os.IBinder;
-import android.os.ResultReceiver;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentTransaction;
+import android.support.v4.content.LocalBroadcastManager;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 
-import com.julie.spotifystreamer.DataContent.TrackContent;
+import com.julie.spotifystreamer.datacontent.TrackContent;
 
 import java.util.ArrayList;
 
@@ -49,12 +50,18 @@ public class TrackPlayerActivity extends AppCompatActivity
     private Boolean isPlaying = false;
     private int mCurrentPos = 0;
     private int mDuration = 0;
-    private ServiceReceiver mServiceReceiver;
+    //private ServiceReceiver mServiceReceiver;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_track_player);
+        LocalBroadcastManager bManager = LocalBroadcastManager.getInstance(this);
+        IntentFilter intentFilter = new IntentFilter();
+        intentFilter.addAction(MediaPlayerService.ACTION_PREPARED);
+        intentFilter.addAction(MediaPlayerService.ACTION_COMPLETE);
+        intentFilter.addAction(MediaPlayerService.ACTION_CHANGE_TRACK);
+        bManager.registerReceiver(bReceiver, intentFilter);
 
         if (savedInstanceState == null) {
             //this should prevent the TrackContent class not being found when unmarshalling
@@ -83,11 +90,9 @@ public class TrackPlayerActivity extends AppCompatActivity
                         .replace(R.id.player_container, fragment, TRACKPLAYER_TAG)
                         .commit();
             }
-            mServiceReceiver = new ServiceReceiver(new Handler());
             startMusicPlayerService(MediaPlayerService.ACTION_PLAY);
         }
         else {
-            mServiceReceiver = savedInstanceState.getParcelable(RECEIVER_TAG);
             Intent playIntent = new Intent(this, MediaPlayerService.class);
             bindService(playIntent, mConnection, Context.BIND_AUTO_CREATE);
         }
@@ -101,7 +106,6 @@ public class TrackPlayerActivity extends AppCompatActivity
         playIntent.putExtra(MediaPlayerService.ARG_TRACK_LIST_POSITION, mTrackListPosition);
         //because the media player is being implemented as a service, we need some way
         //for the service to notify the activity of updates to its state.
-        playIntent.putExtra(MediaPlayerService.RESULT_RECEIVER, mServiceReceiver);
         playIntent.setAction(action);
         startService(playIntent);
 
@@ -159,7 +163,6 @@ public class TrackPlayerActivity extends AppCompatActivity
             // bind to the MediaPlayerService and get the instance of MediaPlayerService
             MediaPlayerService.MediaPlayerBinder binder = (MediaPlayerService.MediaPlayerBinder) service;
             mService = binder.getService();
-            mService.setResultReceiver(mServiceReceiver);
             mBound = true;
             isPlaying = true;
             if (mService.isPrepared()) {
@@ -194,6 +197,7 @@ public class TrackPlayerActivity extends AppCompatActivity
         }
         TrackPlayerFragment fragment = (TrackPlayerFragment)getSupportFragmentManager().
                 findFragmentByTag(TRACKPLAYER_TAG);
+        new UpdateProgressTask().execute();
         if (fragment != null) {
             fragment.showPauseButton();
         }
@@ -251,42 +255,37 @@ public class TrackPlayerActivity extends AppCompatActivity
         }
     }
 
-    /*
-    ResultReceiver that handles messages from the Service about the Service's state.
-     */
-    private class ServiceReceiver extends ResultReceiver {
-        private ResultReceiver mReceiver;
-        public ServiceReceiver (Handler handler) {
-            super(handler);
-        }
-
+    private BroadcastReceiver bReceiver = new BroadcastReceiver() {
+        //Handle updates received from the media player service
         @Override
-        protected void onReceiveResult(int resultCode, Bundle resultData) {
+        public void onReceive(Context context, Intent intent) {
+            String action = intent.getAction();
             TrackPlayerFragment fragment = (TrackPlayerFragment) getSupportFragmentManager().
                     findFragmentByTag(TRACKPLAYER_TAG);
             if (fragment == null) {
                 return;
             }
-            switch (resultCode) {
-                case MediaPlayerService.PREPARED:
+            switch (action) {
+                case MediaPlayerService.ACTION_PREPARED:
                     isPlaying = true;
+                    mTrackContent = intent.getParcelableExtra(ARG_TRACK);
                     mDuration = mService.getDuration();
+                    fragment.updateDisplayedTrack(mTrackContent);
                     fragment.setupProgressBar(mDuration, 0);
                     new UpdateProgressTask().execute();
                     break;
-                case MediaPlayerService.COMPLETE:
+                case MediaPlayerService.ACTION_COMPLETE:
                     isPlaying = false;
                     fragment.showResumeButton();
                     break;
-                case MediaPlayerService.TRACK_CHANGE:
-                    mTrackContent = mService.getCurrentTrack();
+                case MediaPlayerService.ACTION_TRACK_CHANGE:
+                    mTrackContent = intent.getParcelableExtra(ARG_TRACK);
                     fragment.updateDisplayedTrack(mTrackContent);
                     break;
                 default:
-                    Log.e(LOG_TAG, "OnReceiveResult called with unknown result code:  " + resultCode);
+                    Log.e(LOG_TAG, "HandleIntent called with unknown action : " + action);
                     break;
             }
-
         }
     };
 
@@ -300,7 +299,6 @@ public class TrackPlayerActivity extends AppCompatActivity
     //the result receiver must be saved on orientation changes
     @Override
     protected void onSaveInstanceState(Bundle outState) {
-        outState.putParcelable(RECEIVER_TAG, mServiceReceiver);
         super.onSaveInstanceState(outState);
     }
 }

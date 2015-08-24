@@ -56,7 +56,6 @@ public class SettingsActivity extends PreferenceActivity {
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_settings);
         if (savedInstanceState == null) {
             getFragmentManager()
                     .beginTransaction()

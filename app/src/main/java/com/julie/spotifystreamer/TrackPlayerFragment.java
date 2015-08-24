@@ -18,7 +18,7 @@ import android.widget.SeekBar;
 import android.support.v7.widget.ShareActionProvider;
 import android.widget.TextView;
 
-import com.julie.spotifystreamer.DataContent.TrackContent;
+import com.julie.spotifystreamer.datacontent.TrackContent;
 import com.squareup.picasso.Picasso;
 
 //TrackPlayerFragment is a dialog fragment that displays the music player UI

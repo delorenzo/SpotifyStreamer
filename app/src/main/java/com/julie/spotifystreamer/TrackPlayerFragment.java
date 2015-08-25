@@ -188,7 +188,7 @@ public class TrackPlayerFragment extends DialogFragment {
     public void showResumeButton()
     {
         mPauseButton.setVisibility(View.GONE);
-        resumeVisible = false;
+        resumeVisible = true;
         mResumeButton.setVisibility(View.VISIBLE);
     }
 
@@ -196,7 +196,7 @@ public class TrackPlayerFragment extends DialogFragment {
     public void showPauseButton()
     {
         mPauseButton.setVisibility(View.VISIBLE);
-        resumeVisible = true;
+        resumeVisible = false;
         mResumeButton.setVisibility(View.GONE);
     }
 

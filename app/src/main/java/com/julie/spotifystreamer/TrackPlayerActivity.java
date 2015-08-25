@@ -95,7 +95,6 @@ public class TrackPlayerActivity extends AppCompatActivity
         else {
             Intent playIntent = new Intent(this, MediaPlayerService.class);
             bindService(playIntent, mConnection, Context.BIND_AUTO_CREATE);
-            startMusicPlayerService(MediaPlayerService.ACTION_PLAY);
         }
     }
 

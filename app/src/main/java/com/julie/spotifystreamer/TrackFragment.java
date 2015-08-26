@@ -256,7 +256,7 @@ public class TrackFragment extends Fragment implements AbsListView.OnItemClickLi
 
         @Override
         protected void onPostExecute(ArrayList<TrackContent> result) {
-            if (result != null) {
+            if (result != null && result.size() > 0) {
                 mAdapter.clear();
                 mAdapter.addAll(result);
             } else if (errorMessage != null) {

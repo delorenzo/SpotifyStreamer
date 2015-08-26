@@ -260,7 +260,7 @@ public class ArtistFragment extends Fragment implements AbsListView.OnItemClickL
 
         @Override
         protected void onPostExecute(ArrayList<ArtistContent> result) {
-            if (result != null) {
+            if (result != null && result.size() > 0) {
                 mAdapter.clear();
                 mAdapter.addAll(result);
             }

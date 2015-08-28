@@ -6,12 +6,15 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.ServiceConnection;
+import android.content.res.Configuration;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentTransaction;
+import android.support.v4.app.NavUtils;
 import android.support.v4.content.LocalBroadcastManager;
+import android.support.v7.app.ActionBar;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.Menu;
@@ -39,7 +42,7 @@ public class TrackPlayerActivity extends AppCompatActivity
     private static final String RECEIVER_TAG = "resultReceiver";
 
     private boolean mBound = false;
-    private boolean mTablet;
+    //private boolean mTablet;
     //the mediaplayerservice lives here so that its lifetime isn't linked to the lifetime
     //of the fragment.
     private MediaPlayerService mService;
@@ -55,6 +58,10 @@ public class TrackPlayerActivity extends AppCompatActivity
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        ActionBar actionBar = getSupportActionBar();
+        if (actionBar != null) {
+            actionBar.setDisplayHomeAsUpEnabled(true);
+        }
         setContentView(R.layout.activity_track_player);
         LocalBroadcastManager bManager = LocalBroadcastManager.getInstance(this);
         IntentFilter intentFilter = new IntentFilter();
@@ -64,13 +71,15 @@ public class TrackPlayerActivity extends AppCompatActivity
         bManager.registerReceiver(bReceiver, intentFilter);
 
         if (savedInstanceState == null) {
-            //this should prevent the TrackContent class not being found when unmarshalling
-            getIntent().getExtras().setClassLoader(TrackContent.class.getClassLoader());
-            mTrackListPosition = getIntent().getIntExtra(ARG_POSITION, 0);
-            mTrackList = getIntent().getParcelableArrayListExtra(ARG_TRACK_LIST);
-            mTrackContent = mTrackList.get(mTrackListPosition);
-            mTablet = getIntent().getBooleanExtra(ARG_TABLET, false);
-            
+            if (getIntent().getExtras() != null) {
+                //this should prevent the TrackContent class not being found when unmarshalling
+                getIntent().getExtras().setClassLoader(TrackContent.class.getClassLoader());
+                mTrackListPosition = getIntent().getIntExtra(ARG_POSITION, 0);
+                mTrackList = getIntent().getParcelableArrayListExtra(ARG_TRACK_LIST);
+                mTrackContent = mTrackList.get(mTrackListPosition);
+                //mTablet = getIntent().getBooleanExtra(ARG_TABLET, false);
+            }
+
             TrackPlayerFragment fragment = TrackPlayerFragment.newInstance(mTrackContent);
 
             //Remove any previous instance of the track player fragment prior to initializing this one.
@@ -81,7 +90,7 @@ public class TrackPlayerActivity extends AppCompatActivity
             }
 
             //show the fragment as a dialog in two pane mode and embed it in the container otherwise
-            if (mTablet) {
+            if (isLargeTablet(getApplication())) {
                 fragment.show(getSupportFragmentManager(), TRACKPLAYER_TAG);
             }
             else {
@@ -148,6 +157,12 @@ public class TrackPlayerActivity extends AppCompatActivity
         //noinspection SimplifiableIfStatement
         if (id == R.id.action_settings) {
             return true;
+        }
+        else if (id == R.id.home) {
+            //release resources
+            unbindService(mConnection);
+            //navigate to the home activity
+            NavUtils.navigateUpFromSameTask(this);
         }
 
         return super.onOptionsItemSelected(item);
@@ -296,5 +311,13 @@ public class TrackPlayerActivity extends AppCompatActivity
     @Override
     protected void onSaveInstanceState(Bundle outState) {
         super.onSaveInstanceState(outState);
+        outState.putInt(TrackPlayerActivity.ARG_POSITION, mTrackListPosition);
+    }
+
+    //helper method to determine if the device is large enough to support the dialog fragment
+    //used as a dialog
+    private static boolean isLargeTablet(Context context) {
+        return (context.getResources().getConfiguration().screenLayout
+                & Configuration.SCREENLAYOUT_SIZE_MASK) >= Configuration.SCREENLAYOUT_SIZE_LARGE;
     }
 }

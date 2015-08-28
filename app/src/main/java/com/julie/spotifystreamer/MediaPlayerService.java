@@ -61,6 +61,7 @@ public class MediaPlayerService extends Service implements MediaPlayer.OnPrepare
     public static final String ACTION_PREPARED = "com.julie.spotifystreamer.action.PREPARED";
     public static final String ACTION_COMPLETE = "com.julie.spotifystreamer.action.COPMLETE";
     public static final String ACTION_TRACK_CHANGE = "com.julie.spotifystreamer.action.TRACK_CHANGE";
+
     //arguments
     public static final String ARG_TRACK_LIST = "trackList";
     public static final String ARG_TRACK_LIST_POSITION = "trackListPosition";
@@ -72,6 +73,7 @@ public class MediaPlayerService extends Service implements MediaPlayer.OnPrepare
     private static final String MEDIASESSION_TAG = "mediaSession";
     private static final float MAX_VOLUME = 1.0f;
     private static final float MIN_VOLUME = 0.1f;
+    private static final int mPendingIntentCode = 22;
 
     //private internals
     private MediaPlayer mMediaPlayer = null;
@@ -238,12 +240,20 @@ public class MediaPlayerService extends Service implements MediaPlayer.OnPrepare
         new LoadThumbnailTask().execute();
     }
 
+    private PendingIntent getNotificationContentIntent()
+    {
+        Intent contentIntent = new Intent(getApplicationContext(), TrackPlayerActivity.class);
+        contentIntent.putExtra(TrackPlayerActivity.ARG_POSITION, mTrackListPosition);
+        contentIntent.putExtra(TrackPlayerActivity.ARG_TRACK_LIST, mTrackList);
+        return PendingIntent.getActivity(
+                getApplicationContext(),
+                0,
+                contentIntent,
+                PendingIntent.FLAG_UPDATE_CURRENT);
+    }
+
     //make the service a foreground service by creating a notification for the status bar.
     private void initNotification() {
-        PendingIntent pendingIntent = PendingIntent.getActivity(getApplicationContext(), 0,
-                new Intent(getApplicationContext(), TrackPlayerActivity.class),
-                PendingIntent.FLAG_UPDATE_CURRENT);
-
         //show lockscreen controls on pre-21 devices using MediaSessionCompat
         //see:
         //http://codeengine.org/media-session-compat-not-showing-lockscreen-controls-on-pre-lollipop/
@@ -253,8 +263,11 @@ public class MediaPlayerService extends Service implements MediaPlayer.OnPrepare
         //https://developer.android.com/guide/topics/ui/notifiers/notifications.html#controllingMedia
         ComponentName mRemoteControlReceiver = new ComponentName(getPackageName(),
                 RemoteControlReceiver.class.getName());
+        //create the media button intent and set it to the remote control receiver
         final Intent mediaButtonIntent = new Intent(Intent.ACTION_MEDIA_BUTTON);
         mediaButtonIntent.setComponent(mRemoteControlReceiver);
+
+        //set up the media session
         mSession = new MediaSessionCompat(getApplicationContext(), MEDIASESSION_TAG,
                 mRemoteControlReceiver, null);
         mSession.setFlags(MediaSessionCompat.FLAG_HANDLES_MEDIA_BUTTONS | MediaSessionCompat.FLAG_HANDLES_TRANSPORT_CONTROLS);
@@ -283,6 +296,14 @@ public class MediaPlayerService extends Service implements MediaPlayer.OnPrepare
         Boolean showOnLockScreen = prefs.getBoolean(getApplicationContext().getString(R.string.pref_show_notification_controls_key), true);
         int visibility = showOnLockScreen ? NotificationCompat.VISIBILITY_PUBLIC : NotificationCompat.VISIBILITY_PRIVATE;
 
+        Intent deleteIntent = new Intent(getApplicationContext(), MediaPlayerService.class);
+        deleteIntent.setAction(MediaPlayerService.ACTION_STOP);
+        PendingIntent pendingDeleteIntent = PendingIntent.getService(
+                getApplicationContext(),
+                0,
+                deleteIntent,
+                PendingIntent.FLAG_UPDATE_CURRENT);
+
         mNotificationBuilder =
                 //for some reason this seems to need casting or the v4 notificationcompat is returned
                 //v7 notificationcompat is required to use MediaStyle
@@ -305,7 +326,11 @@ public class MediaPlayerService extends Service implements MediaPlayer.OnPrepare
                         .setContentTitle(getString(R.string.now_playing))
                         .setSmallIcon(R.drawable.ic_queue_music_black_24dp)
                         .setLargeIcon(albumArt)
-                        .setContentText(mCurrentTrack.getTrackName());
+                        .setContentText(mCurrentTrack.getTrackName())
+                        //if the notificiation is dismissed, stop the service
+                        .setDeleteIntent(pendingDeleteIntent)
+                        //if the notification is clicked, restart the trackplayeractivity
+                        .setContentIntent(getNotificationContentIntent());
         Notification notification = mNotificationBuilder.build();
 
         mTransportController = mSession.getController().getTransportControls();
@@ -343,6 +368,21 @@ public class MediaPlayerService extends Service implements MediaPlayer.OnPrepare
             playPauseString = getString(R.string.msg_resume);
         }
 
+        Intent deleteIntent = new Intent(getApplicationContext(), MediaPlayerService.class);
+        deleteIntent.setAction(MediaPlayerService.ACTION_STOP);
+        PendingIntent pendingDeleteIntent = PendingIntent.getService(
+                getApplicationContext(),
+                0,
+                deleteIntent,
+                PendingIntent.FLAG_UPDATE_CURRENT);
+
+        Intent contentIntent = new Intent(getApplicationContext(), TrackPlayerActivity.class);
+        PendingIntent pendingContentIntent = PendingIntent.getActivity(
+                getApplicationContext(),
+                0,
+                contentIntent,
+                PendingIntent.FLAG_UPDATE_CURRENT);
+
         mNotificationBuilder =
                 //for some reason this seems to need casting or the v4 notificationcompat is returned
                 //v7 notificationcompat is required to use MediaStyle
@@ -364,7 +404,11 @@ public class MediaPlayerService extends Service implements MediaPlayer.OnPrepare
                         .setContentTitle(getString(R.string.now_playing))
                         .setSmallIcon(R.drawable.ic_queue_music_black_24dp)
                         .setLargeIcon(albumArt)
-                        .setContentText(mCurrentTrack.getTrackName());
+                        .setContentText(mCurrentTrack.getTrackName())
+                        //if the notificiation is dismissed, stop the service
+                        .setDeleteIntent(pendingDeleteIntent)
+                        //if the notification is clicked, restart the trackplayeractivity
+                        .setContentIntent(getNotificationContentIntent());
         Notification notification = mNotificationBuilder.build();
 
         mTransportController = mSession.getController().getTransportControls();
@@ -372,12 +416,6 @@ public class MediaPlayerService extends Service implements MediaPlayer.OnPrepare
         mNotificationManager.notify(mNotificationId, notification);
 
         startForeground(mNotificationId, notification);
-    }
-    //update the notification with the appropriate track name
-    private void updateNotificationText() {
-        NotificationManager mNotificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
-        mNotificationBuilder.setContentText(mCurrentTrack.getTrackName());
-        mNotificationManager.notify(mNotificationId, mNotificationBuilder.build());
     }
 
     private void updateNotificationThumbnail(Bitmap image)
@@ -479,8 +517,13 @@ public class MediaPlayerService extends Service implements MediaPlayer.OnPrepare
             mMediaPlayer = null;
         }
         isPrepared = false;
+        //release wifi
         releaseWifiLock();
+        //halt the notification and release the session
         stopForeground(true);
+        NotificationManager mNotificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+        mNotificationManager.cancel(mNotificationId);
+        mSession.release();
         stopSelf();
     }
 
@@ -524,9 +567,6 @@ public class MediaPlayerService extends Service implements MediaPlayer.OnPrepare
     @Override
     public void onDestroy() {
         stop();
-        NotificationManager mNotificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
-        mNotificationManager.cancel(mNotificationId);
-        mSession.release();
     }
 
     // A client is binding to the service with bindService()

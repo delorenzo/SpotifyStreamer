@@ -7,10 +7,13 @@ import android.os.Handler;
 import android.os.PersistableBundle;
 import android.support.annotation.NonNull;
 import android.support.v4.app.Fragment;
+import android.support.v4.app.FragmentManager;
 import android.support.v4.app.FragmentTransaction;
 import android.os.Bundle;
+import android.support.v7.app.ActionBar;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.SearchView;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 
@@ -27,19 +30,7 @@ public class MainActivity extends AppCompatActivity implements
     private Boolean mTwoPane = false;
     private static final String ARTISTFRAGMENT_TAG = "AFTAG";
     private static final String TRACKFRAGMENT_TAG = "TFTAG";
-    private static final String TRACKPLAYER_TAG = "TPTAG";
-    private static final String LOG_TAG = MainActivity.class.getSimpleName();
     private static final String ARG_TWOPANE = "twoPane";
-
-    private int mTrackListPosition = 0;
-    private ArrayList<TrackContent> mTrackList;
-    private TrackContent mTrackContent;
-    private MediaPlayerService mService;
-    private Boolean isPlaying = false;
-    private int mCurrentPos = 0;
-    private int mDuration = 0;
-    private Handler mHandler = new Handler();
-    private Boolean mBound = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -66,6 +57,23 @@ public class MainActivity extends AppCompatActivity implements
                     .add(R.id.track_container, new TrackFragment(), TRACKFRAGMENT_TAG)
                     .commit();
         }
+
+        getSupportFragmentManager().addOnBackStackChangedListener(
+                new FragmentManager.OnBackStackChangedListener() {
+                    //enable or disable up navigation based on the fragment manager stack
+                    @Override
+                    public void onBackStackChanged() {
+                        ActionBar actionBar = getSupportActionBar();
+                        if (actionBar != null) {
+                            if (getSupportFragmentManager().getBackStackEntryCount() > 0) {
+                                actionBar.setDisplayHomeAsUpEnabled(true);
+                            } else {
+                                actionBar.setDisplayHomeAsUpEnabled(false);
+                            }
+                        }
+                    }
+                }
+        );
     }
 
     @Override
@@ -91,6 +99,7 @@ public class MainActivity extends AppCompatActivity implements
             else {
                 transaction.replace(R.id.container, artistFragment, ARTISTFRAGMENT_TAG);
             }
+            transaction.addToBackStack(null);
             transaction.commit();
         }
     }
@@ -124,6 +133,17 @@ public class MainActivity extends AppCompatActivity implements
         if (id == R.id.action_settings) {
             Intent intent = new Intent(this, SettingsActivity.class);
             startActivity(intent);
+            return true;
+        }
+        else if (id == R.id.homeAsUp) {
+            FragmentManager fm = getSupportFragmentManager();
+        }
+        else if (id == android.R.id.home) {
+            FragmentManager fm = getSupportFragmentManager();
+            int backStackCount = fm.getBackStackEntryCount();
+            if (fm.getBackStackEntryCount() > 0) {
+                getSupportFragmentManager().popBackStack();
+            }
             return true;
         }
 

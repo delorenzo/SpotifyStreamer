@@ -112,7 +112,7 @@ public class MediaPlayerService extends Service implements MediaPlayer.OnPrepare
                 pause();
                 break;
             case AudioManager.AUDIOFOCUS_LOSS_TRANSIENT_CAN_DUCK:
-                if (mMediaPlayer.isPlaying()) {
+                if (mMediaPlayer != null && mMediaPlayer.isPlaying()) {
                     mMediaPlayer.setVolume(MIN_VOLUME, MIN_VOLUME);
                 }
                 break;

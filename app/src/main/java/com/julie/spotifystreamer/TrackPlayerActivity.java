@@ -55,6 +55,7 @@ public class TrackPlayerActivity extends AppCompatActivity
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_track_player);
         LocalBroadcastManager bManager = LocalBroadcastManager.getInstance(this);
         IntentFilter intentFilter = new IntentFilter();
         intentFilter.addAction(MediaPlayerService.ACTION_PREPARED);
@@ -82,7 +83,7 @@ public class TrackPlayerActivity extends AppCompatActivity
             }
 
             //show the fragment as a dialog in two pane mode and embed it in the container otherwise
-            if (isLargeTablet(getApplication())) {
+            if (isLargeTablet(this)) {
                 fragment.show(getSupportFragmentManager(), TRACKPLAYER_TAG);
             }
             else {

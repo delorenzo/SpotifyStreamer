@@ -146,7 +146,6 @@ public class MainActivity extends AppCompatActivity implements
         }
         else if (id == android.R.id.home) {
             FragmentManager fm = getSupportFragmentManager();
-            int backStackCount = fm.getBackStackEntryCount();
             if (fm.getBackStackEntryCount() > 0) {
                 getSupportFragmentManager().popBackStack();
             }
@@ -154,7 +153,6 @@ public class MainActivity extends AppCompatActivity implements
         }
         else if (id == R.id.action_now_playing) {
             Intent intent = new Intent(this, TrackPlayerActivity.class);
-            intent.setFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT);
             startActivity(intent);
         }
 

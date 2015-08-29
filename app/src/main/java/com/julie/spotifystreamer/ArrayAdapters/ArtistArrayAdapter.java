@@ -59,7 +59,7 @@ public class ArtistArrayAdapter extends ArrayAdapter<ArtistContent> {
         }
         else {
             Picasso.with(getContext())
-                    .load(R.mipmap.ic_launcher)
+                    .load(R.mipmap.placeholder_icon)
                     .into(viewHolder.thumbnailImage);
         }
         viewHolder.artistName.setText(artist.getName());

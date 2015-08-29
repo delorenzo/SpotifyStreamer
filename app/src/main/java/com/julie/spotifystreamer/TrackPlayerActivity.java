@@ -194,45 +194,24 @@ public class TrackPlayerActivity extends AppCompatActivity
         }
     };
 
-
-    public void pausePlayer(View view) {
-        TrackPlayerFragment fragment = (TrackPlayerFragment)getSupportFragmentManager().
-                findFragmentByTag(TRACKPLAYER_TAG);
-        if (fragment != null) {
-            fragment.showResumeButton();
-        }
+    public void pausePlayer() {
         startMusicPlayerService(MediaPlayerService.ACTION_PAUSE);
     }
 
-    public void resumePlayer(View view) {
-        TrackPlayerFragment fragment = (TrackPlayerFragment)getSupportFragmentManager().
-                findFragmentByTag(TRACKPLAYER_TAG);
+    public void resumePlayer() {
         new UpdateProgressTask().execute();
-        if (fragment != null) {
-            fragment.showPauseButton();
-        }
         startMusicPlayerService(MediaPlayerService.ACTION_RESUME);
     }
 
-    public void skipNextPlayer(View view) {
+    public void skipNextPlayer() {
         isPlaying = false;
         mCurrentPos = 0;
-        //if the track is paused and the user skips to next, we want the track to start
-        //playing and the pause button to be displayed again.
-        TrackPlayerFragment fragment = (TrackPlayerFragment)getSupportFragmentManager().
-                findFragmentByTag(TRACKPLAYER_TAG);
-        fragment.showPauseButton();
         startMusicPlayerService(MediaPlayerService.ACTION_NEXT);
     }
 
-    public void skipPreviousPlayer(View view) {
+    public void skipPreviousPlayer() {
         isPlaying = false;
         mCurrentPos = 0;
-        //if the track is paused and the user skips to next, we want the track to start
-        //playing and the pause button to be displayed again.
-        TrackPlayerFragment fragment = (TrackPlayerFragment)getSupportFragmentManager().
-                findFragmentByTag(TRACKPLAYER_TAG);
-        fragment.showPauseButton();
         startMusicPlayerService(MediaPlayerService.ACTION_PREVIOUS);
     }
 

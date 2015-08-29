@@ -74,24 +74,20 @@
             style="@style/musicPlayerButton"
             android:src="@drawable/ic_skip_previous_black_24dp"
             android:id="@+id/button_previous"
-            android:onClick="skipPreviousPlayer"
             android:layout_marginRight="16dp"/>
         <ImageButton
             style="@style/musicPlayerButton"
             android:src="@drawable/ic_play_arrow_black_24dp"
             android:id="@+id/button_play"
-            android:visibility="gone"
-            android:onClick="resumePlayer"/>
+            android:visibility="gone"/>
         <ImageButton
             style="@style/musicPlayerButton"
             android:src="@drawable/ic_pause_black_24dp"
-            android:id="@+id/button_pause"
-            android:onClick="pausePlayer"/>
+            android:id="@+id/button_pause"/>
         <ImageButton
             style="@style/musicPlayerButton"
             android:src="@drawable/ic_skip_next_black_24dp"
             android:id="@+id/button_next"
-            android:onClick="skipNextPlayer"
             android:layout_marginLeft="16dp"/>
     </LinearLayout>
 

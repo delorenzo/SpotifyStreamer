@@ -17,6 +17,7 @@ import android.widget.ImageView;
 import android.widget.SeekBar;
 import android.support.v7.widget.ShareActionProvider;
 import android.widget.TextView;
+import android.view.View.OnClickListener;
 
 import com.julie.spotifystreamer.datacontent.TrackContent;
 import com.squareup.picasso.Picasso;
@@ -24,7 +25,7 @@ import com.squareup.picasso.Picasso;
 //TrackPlayerFragment is a dialog fragment that displays the music player UI
 //https://developer.android.com/reference/android/app/DialogFragment.html
 
-public class TrackPlayerFragment extends DialogFragment {
+public class TrackPlayerFragment extends DialogFragment implements OnClickListener {
     private static final String LOG_TAG = TrackPlayerFragment.class.getSimpleName();
     private static final String ARG_TRACK = "track";
     private static final String ARG_TRACK_DURATION = "trackDuration";
@@ -88,7 +89,13 @@ public class TrackPlayerFragment extends DialogFragment {
 
         mSeekBar = (SeekBar) view.findViewById(R.id.progress_bar);
         mPauseButton = (ImageButton) view.findViewById(R.id.button_pause);
+        mPauseButton.setOnClickListener(this);
         mResumeButton = (ImageButton) view.findViewById(R.id.button_play);
+        mResumeButton.setOnClickListener(this);
+        ImageButton nextButton = (ImageButton)view.findViewById(R.id.button_next);
+        nextButton.setOnClickListener(this);
+        ImageButton prevButton = (ImageButton)view.findViewById(R.id.button_previous);
+        prevButton.setOnClickListener(this);
 
         //restore UI sensitive saved data
         if (savedInstanceState != null) {
@@ -238,5 +245,32 @@ public class TrackPlayerFragment extends DialogFragment {
         return shareIntent;
     }
 
-
+    @Override
+    public void onClick(View v) {
+        switch (v.getId()) {
+            case R.id.button_pause:
+                showResumeButton();
+                ((TrackPlayerActivity)getActivity()).pausePlayer();
+                break;
+            case R.id.button_next:
+                //if the track is paused and the user skips to next, we want the track to start
+                //playing and the pause button to be displayed again.
+                showPauseButton();
+                ((TrackPlayerActivity)getActivity()).skipNextPlayer();
+                break;
+            case R.id.button_play:
+                showPauseButton();
+                ((TrackPlayerActivity)getActivity()).resumePlayer();
+                break;
+            case R.id.button_previous:
+                //if the track is paused and the user skips, the track should begin playing again
+                //and the pause button should be displayed.
+                showPauseButton();
+                ((TrackPlayerActivity)getActivity()).skipPreviousPlayer();
+                break;
+            default:
+                Log.e(LOG_TAG, "Unknown view id " + v.getId() + " clicked.");
+                break;
+        }
+    }
 }

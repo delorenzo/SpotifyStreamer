@@ -533,8 +533,7 @@ public class MediaPlayerService extends Service implements MediaPlayer.OnPrepare
         }
         mWifiLock = null;
     }
-    
-    //acquire the wifi lock
+
     private void acquireWifiLock() {
         mWifiLock = ((WifiManager) getSystemService(Context.WIFI_SERVICE))
                 .createWifiLock(WifiManager.WIFI_MODE_FULL, WIFI_LOCK_TAG);
@@ -575,6 +574,7 @@ public class MediaPlayerService extends Service implements MediaPlayer.OnPrepare
         return mBinder;
     }
 
+    //A client has unbound from the service
     @Override
     public boolean onUnbind(Intent intent) {
         return false;
@@ -616,6 +616,7 @@ public class MediaPlayerService extends Service implements MediaPlayer.OnPrepare
         return duration;
     }
 
+    //seek the media player to the appropriate section of playback.
     public void MediaPlayerSeekTo(int progress) {
         if (mMediaPlayer != null) {
             mMediaPlayer.pause();
@@ -624,18 +625,9 @@ public class MediaPlayerService extends Service implements MediaPlayer.OnPrepare
         }
     }
 
+    //this call lets the attached activity verify the player is in the prepared state.
     public Boolean isPrepared() {
         return isPrepared;
-    }
-
-
-    public void setList(ArrayList<TrackContent> list, int position) {
-        mTrackList = list;
-        mTrackListPosition = position;
-    }
-
-    public TrackContent getCurrentTrack() {
-        return mCurrentTrack;
     }
 
     //This task loads the bitmap for the notification image in the background, and updates
@@ -660,7 +652,7 @@ public class MediaPlayerService extends Service implements MediaPlayer.OnPrepare
         }
     }
 
-
+    //MediaSessionCompat callbacks for backwards compatible media style notification handling
     private final MediaSessionCompat.Callback mMediaSessionCallback = new MediaSessionCompat.Callback() {
         @Override
         public boolean onMediaButtonEvent(Intent intent) {

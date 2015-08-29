@@ -35,7 +35,7 @@
     <string name="pref_country_code_default">US</string>
 
     <!--media player notification strings-->
-    <string name="now_playing">Now playing...</string>
+    <string name="now_playing">Now playing</string>
     <string name="msg_previous">Previous</string>
     <string name="msg_pause">Pause</string>
     <string name="msg_resume">Resume</string>

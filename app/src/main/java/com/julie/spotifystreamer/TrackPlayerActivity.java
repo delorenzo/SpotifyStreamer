@@ -46,21 +46,15 @@ public class TrackPlayerActivity extends AppCompatActivity
     //of the fragment.
     private MediaPlayerService mService;
     private TrackContent mTrackContent;
-    private int progress = 0;
     private int mTrackListPosition = 0;
     private ArrayList<TrackContent> mTrackList;
     private Boolean isPlaying = false;
-    private int mCurrentPos = 0;
     private int mDuration = 0;
     //private ServiceReceiver mServiceReceiver;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        ActionBar actionBar = getSupportActionBar();
-        if (actionBar != null) {
-            actionBar.setDisplayHomeAsUpEnabled(true);
-        }
         LocalBroadcastManager bManager = LocalBroadcastManager.getInstance(this);
         IntentFilter intentFilter = new IntentFilter();
         intentFilter.addAction(MediaPlayerService.ACTION_PREPARED);
@@ -92,16 +86,17 @@ public class TrackPlayerActivity extends AppCompatActivity
                 fragment.show(getSupportFragmentManager(), TRACKPLAYER_TAG);
             }
             else {
+                //only add the up button for the phone mode
+                ActionBar actionBar = getSupportActionBar();
+                if (actionBar != null) {
+                    actionBar.setDisplayHomeAsUpEnabled(true);
+                }
                 getSupportFragmentManager()
                         .beginTransaction()
                         .replace(R.id.player_container, fragment, TRACKPLAYER_TAG)
                         .commit();
             }
             startMusicPlayerService(MediaPlayerService.ACTION_PLAY);
-        }
-        else {
-            Intent playIntent = new Intent(this, MediaPlayerService.class);
-            bindService(playIntent, mConnection, Context.BIND_AUTO_CREATE);
         }
     }
 
@@ -115,27 +110,27 @@ public class TrackPlayerActivity extends AppCompatActivity
         //for the service to notify the activity of updates to its state.
         playIntent.setAction(action);
         startService(playIntent);
-
-        bindService(playIntent, mConnection, Context.BIND_AUTO_CREATE);
     }
 
     @Override
     protected void onStart() {
         super.onStart();
+        Intent playIntent = new Intent(this, MediaPlayerService.class);
+        bindService(playIntent, mConnection, Context.BIND_AUTO_CREATE);
     }
 
     @Override
     protected void onStop() {
         super.onStop();
+        if (mBound) {
+            unbindService(mConnection);
+            mBound = false;
+        }
     }
 
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        if (mBound) {
-            unbindService(mConnection);
-            mBound = false;
-        }
     }
 
     @Override
@@ -157,8 +152,6 @@ public class TrackPlayerActivity extends AppCompatActivity
             return true;
         }
         else if (id == android.R.id.home) {
-            //release resources
-            unbindService(mConnection);
             //navigate to the home activity
             NavUtils.navigateUpFromSameTask(this);
         }
@@ -168,8 +161,7 @@ public class TrackPlayerActivity extends AppCompatActivity
 
     //from https://developer.android.com/guide/components/bound-services.html
     /** Defines callbacks for service binding, passed to bindService() */
-    private ServiceConnection mConnection = new ServiceConnection() {
-
+    private final ServiceConnection mConnection = new ServiceConnection() {
         @Override
         public void onServiceConnected(ComponentName className,
                                        IBinder service) {
@@ -186,8 +178,8 @@ public class TrackPlayerActivity extends AppCompatActivity
         @Override
         public void onServiceDisconnected(ComponentName arg0) {
             Log.e(LOG_TAG, "Service disconnected unexpectedly");
-            mBound = false;
             mService = null;
+            mBound = false;
             isPlaying = false;
         }
     };
@@ -203,13 +195,11 @@ public class TrackPlayerActivity extends AppCompatActivity
 
     public void skipNextPlayer() {
         isPlaying = false;
-        mCurrentPos = 0;
         startMusicPlayerService(MediaPlayerService.ACTION_NEXT);
     }
 
     public void skipPreviousPlayer() {
         isPlaying = false;
-        mCurrentPos = 0;
         startMusicPlayerService(MediaPlayerService.ACTION_PREVIOUS);
     }
 
@@ -282,13 +272,6 @@ public class TrackPlayerActivity extends AppCompatActivity
         if (mService != null && mService.isPrepared()) {
             mService.MediaPlayerSeekTo(position);
         }
-    }
-
-    //the result receiver must be saved on orientation changes
-    @Override
-    protected void onSaveInstanceState(Bundle outState) {
-        super.onSaveInstanceState(outState);
-        outState.putInt(TrackPlayerActivity.ARG_POSITION, mTrackListPosition);
     }
 
     //helper method to determine if the device is large enough to support the dialog fragment

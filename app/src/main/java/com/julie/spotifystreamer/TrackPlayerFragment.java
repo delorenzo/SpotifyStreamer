@@ -81,12 +81,6 @@ public class TrackPlayerFragment extends DialogFragment implements OnClickListen
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.fragment_track_player, container, false);
-
-        if (mTrackContent == null) {
-            Log.e(LOG_TAG, "No track content found.");
-            return view;
-        }
-
         mSeekBar = (SeekBar) view.findViewById(R.id.progress_bar);
         mPauseButton = (ImageButton) view.findViewById(R.id.button_pause);
         mPauseButton.setOnClickListener(this);
@@ -112,7 +106,10 @@ public class TrackPlayerFragment extends DialogFragment implements OnClickListen
             showResumeButton();
         }
 
-        setupDisplayedTrack(view);
+        //display the current track if available
+        if (mTrackContent != null) {
+            setupDisplayedTrack(view);
+        }
 
         return view;
     }
@@ -132,6 +129,11 @@ public class TrackPlayerFragment extends DialogFragment implements OnClickListen
 
     //set up the display from the current track
     private void setupDisplayedTrack(View view) {
+        //do not proceed if the current track is null
+        if (mTrackContent == null) {
+            return;
+        }
+
         //set up the basic display content
         TextView artistTextView = (TextView)view.findViewById(R.id.artist_name);
         artistTextView.setText(mTrackContent.getArtistName());
@@ -147,6 +149,9 @@ public class TrackPlayerFragment extends DialogFragment implements OnClickListen
                 .load(mTrackContent.getThumbnailURL())
                 .into(trackImageView);
 
+        if (mSeekBar == null) {
+            mSeekBar = (SeekBar) view.findViewById(R.id.progress_bar);
+        }
         mSeekBar.setProgress(0);
         mSeekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             //update the seekbar and notify the activity if the changes came from the user

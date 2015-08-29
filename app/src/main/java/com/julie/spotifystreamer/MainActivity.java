@@ -31,6 +31,8 @@ public class MainActivity extends AppCompatActivity implements
     private static final String ARTISTFRAGMENT_TAG = "AFTAG";
     private static final String TRACKFRAGMENT_TAG = "TFTAG";
     private static final String ARG_TWOPANE = "twoPane";
+    private Boolean showNowPlayingButton = false;
+    private static final int mNowPlayingMenuIndex = 0;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -119,6 +121,10 @@ public class MainActivity extends AppCompatActivity implements
         //see https://stackoverflow.com/questions/20082535/hint-in-search-widget-within-action-bar-is-not-showing-up
         searchView.setQueryHint(getString(R.string.search_hint));
 
+        if (showNowPlayingButton) {
+            menu.getItem(mNowPlayingMenuIndex).setVisible(true);
+        }
+
         return true;
     }
 
@@ -146,6 +152,11 @@ public class MainActivity extends AppCompatActivity implements
             }
             return true;
         }
+        else if (id == R.id.action_now_playing) {
+            Intent intent = new Intent(this, TrackPlayerActivity.class);
+            intent.setFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT);
+            startActivity(intent);
+        }
 
         return super.onOptionsItemSelected(item);
     }
@@ -166,6 +177,8 @@ public class MainActivity extends AppCompatActivity implements
     }
 
     public void onTrackSelected(ArrayList<TrackContent> trackList, int position) {
+        showNowPlayingButton = true;
+        invalidateOptionsMenu();
         Intent intent = new Intent(this, TrackPlayerActivity.class);
         intent.putExtra(TrackPlayerActivity.ARG_POSITION, position);
         intent.putExtra(TrackPlayerActivity.ARG_TRACK_LIST, trackList);

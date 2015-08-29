@@ -61,7 +61,6 @@ public class TrackPlayerActivity extends AppCompatActivity
         if (actionBar != null) {
             actionBar.setDisplayHomeAsUpEnabled(true);
         }
-        setContentView(R.layout.activity_track_player);
         LocalBroadcastManager bManager = LocalBroadcastManager.getInstance(this);
         IntentFilter intentFilter = new IntentFilter();
         intentFilter.addAction(MediaPlayerService.ACTION_PREPARED);
@@ -157,7 +156,7 @@ public class TrackPlayerActivity extends AppCompatActivity
         if (id == R.id.action_settings) {
             return true;
         }
-        else if (id == R.id.home) {
+        else if (id == android.R.id.home) {
             //release resources
             unbindService(mConnection);
             //navigate to the home activity

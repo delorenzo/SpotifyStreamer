@@ -284,9 +284,9 @@ public class MediaPlayerService extends Service implements MediaPlayer.OnPrepare
                 .build();
         mSession.setPlaybackState(mPlaybackState);
         mSession.setMetadata(new MediaMetadataCompat.Builder()
-                .putString(MediaMetadata.METADATA_KEY_ARTIST, mCurrentTrack.getArtistName())
-                .putString(MediaMetadata.METADATA_KEY_ALBUM, mCurrentTrack.getAlbumName())
-                .putString(MediaMetadata.METADATA_KEY_TITLE, mCurrentTrack.getTrackName())
+                .putString(MediaMetadataCompat.METADATA_KEY_ARTIST, mCurrentTrack.getArtistName())
+                .putString(MediaMetadataCompat.METADATA_KEY_ALBUM, mCurrentTrack.getAlbumName())
+                .putString(MediaMetadataCompat.METADATA_KEY_TITLE, mCurrentTrack.getTrackName())
                 .build());
         mSession.setCallback(mMediaSessionCallback);
         mSession.setActive(true);
@@ -523,7 +523,10 @@ public class MediaPlayerService extends Service implements MediaPlayer.OnPrepare
         stopForeground(true);
         NotificationManager mNotificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
         mNotificationManager.cancel(mNotificationId);
-        mSession.release();
+        if (mSession != null) {
+            mSession.release();
+            mSession = null;
+        }
         stopSelf();
     }
 
